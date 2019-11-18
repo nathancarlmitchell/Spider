@@ -1,23 +1,25 @@
 ﻿[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$domain = 'chfs.ky.gov'
-$url = 'https://chfs.ky.gov/Pages/sitemap.aspx'
+$domain = 'technology.ky.gov'
+$url = 'https://technology.ky.gov/Pages/default.aspx'
 $path =  'C:\Users\nathan.mitchell\Documents\Spider\'
-$file = 'spider.txt'
+$file = $domain+'.txt'
+
+Set-Content -Path $path$file -Value $url
 
 $curl = Invoke-WebRequest $url
 $links = $curl.Links.href
-
-Set-Content -Path $path$file -Value 'CHFS Spider'
 
 foreach ($link in $links) {
 
     $contentlink = $domain + $link
 
     if ($link.StartsWith('/')) {
-        #check duplicates here
-        $result = $domain + $link
-        $result
-        Add-Content -Path $path$file -Value $result
+
+        if (!( Get-Content $path$file | Where-Object { $_.Contains($contentlink) } )) {
+            $result = $domain + $link
+            $result
+            Add-Content -Path $path$file -Value $result
+        }
 
         $url = $domain + $link
         $curl = Invoke-WebRequest $url
@@ -30,6 +32,7 @@ foreach ($link in $links) {
             if (!( Get-Content $path$file | Where-Object { $_.Contains($contentlink) } )) {
 
                 if ($link.StartsWith('/')) {
+
                     $result = $domain + $link
                     $result
                     Add-Content -Path $path$file -Value $result
@@ -48,6 +51,24 @@ foreach ($link in $links) {
                                 $result = $domain + $link
                                 $result
                                 Add-Content -Path $path$file -Value $result
+
+                                $url = $domain + $link
+                                $curl = Invoke-WebRequest $url
+                                $links = $curl.Links.href
+
+                                foreach ($link in $links) {
+                        
+                                    $contentlink = $domain + $link
+            
+                                    if (!( Get-Content $path$file | Where-Object { $_.Contains($contentlink) } )) {
+            
+                                        if ($link.StartsWith('/')) {
+                                            $result = $domain + $link
+                                            $result
+                                            Add-Content -Path $path$file -Value $result
+                                        }
+                                    } else { 'Duplicate' }
+                                }
                             }
                         } else { 'Duplicate' }
                     }
@@ -56,6 +77,6 @@ foreach ($link in $links) {
         }
     }
 }
-
+#catch exceptions
 #check for unique values
 #ends with 'pdf'
