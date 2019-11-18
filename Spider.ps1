@@ -1,35 +1,59 @@
-﻿$url = 'https://chfs.ky.gov/Pages/sitemap.aspx'
-$path =  'C:\Users\Owner\Documents\Spider\'
-$file = 'spider.xlsx'
+﻿[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$domain = 'chfs.ky.gov'
+$url = 'https://chfs.ky.gov/Pages/sitemap.aspx'
+$path =  'C:\Users\nathan.mitchell\Documents\Spider\'
+$file = 'spider.txt'
 
-$curl = curl $url
+$curl = Invoke-WebRequest $url
 $links = $curl.Links.href
 
-Set-Content -Path $path+$file -Value 'CHFS Spider'
+Set-Content -Path $path$file -Value 'CHFS Spider'
 
 foreach ($link in $links) {
 
-    $content = Get-Content -Path $path+$file
-    $contentlink = 'chfs.ky.gov' + $link
+    $contentlink = $domain + $link
 
-    if (!$content.Equals($contentlink)) {
+    if ($link.StartsWith('/')) {
+        #check duplicates here
+        $result = $domain + $link
+        $result
+        Add-Content -Path $path$file -Value $result
 
-        if ($link.StartsWith('/')) {
+        $url = $domain + $link
+        $curl = Invoke-WebRequest $url
+        $links = $curl.Links.href
 
-            $url = 'chfs.ky.gov' + $link
-            $curl = curl $url
-            $links = $curl.Links.href
+        foreach ($link in $links) {
 
-            foreach ($link in $links) {
+            $contentlink = $domain + $link
+
+            if (!( Get-Content $path$file | Where-Object { $_.Contains($contentlink) } )) {
 
                 if ($link.StartsWith('/')) {
-                    $result = 'chfs.ky.gov' + $link
+                    $result = $domain + $link
                     $result
+                    Add-Content -Path $path$file -Value $result
 
-                    Add-Content -Path $path+$file -Value $result
+                    $url = $domain + $link
+                    $curl = Invoke-WebRequest $url
+                    $links = $curl.Links.href
+
+                    foreach ($link in $links) {
+                        
+                        $contentlink = $domain + $link
+
+                        if (!( Get-Content $path$file | Where-Object { $_.Contains($contentlink) } )) {
+
+                            if ($link.StartsWith('/')) {
+                                $result = $domain + $link
+                                $result
+                                Add-Content -Path $path$file -Value $result
+                            }
+                        } else { 'Duplicate' }
+                    }
                 }
-            }
-        } else { 'Duplicate' }
+            } else { 'Duplicate' }
+        }
     }
 }
 
