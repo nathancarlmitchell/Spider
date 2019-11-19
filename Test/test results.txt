@@ -1,0 +1,21 @@
+
+chfs.ky.gov
+Level 1: 1
+Level 2: 437
+Level 3: 1170
+Level 4: 567
+Level 5: 906
+36 minutes
+4 dupe
+3077 uniq
+
+chfs.ky.gov
+Level 1: 1
+Level 2: 435
+Level 3: 1183
+Level 4: 566
+Level 5: 353
+Level 6: 1107
+47 minutes
+4 dupe
+3641 uniq
