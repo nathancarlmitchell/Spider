@@ -1,0 +1,10 @@
+if $link.Contains($domain) - sitemap
+
+catch exceptions
+
+make recursive
+
+output to csv (escape commas in URL)
+-include description
+-source link
+-file type
