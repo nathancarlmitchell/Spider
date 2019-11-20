@@ -3,7 +3,8 @@
 # https://github.com/nathancarlmitchell/Spider
 # Verion 2.1.3
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$url = 'http://aba.ky.gov/Pages/default.aspx'
+$url = 'mcalleninc.com'
+$url = $args[0]
 $curl = Invoke-WebRequest $url -UseBasicParsing
 $domain = $curl.BaseResponse.ResponseUri.Host
 $path =  'C:\Users\nathan.mitchell\Documents\Spider\'+$domain+'\'
@@ -11,6 +12,7 @@ $file = $domain+'.txt'
 $docfile = $domain+'.docs.txt'
 $errorfile = $domain+'.errors.txt'
 $reportfile = $domain+'.report.csv'
+$tempfile = $domain+'.temp.txt'
 $outofscope = 0
 $duplicatecount = 0
 $webcount = 0
@@ -29,11 +31,11 @@ if(![System.IO.File]::Exists($path+$file)) {
 if(![System.IO.File]::Exists($path+$docfile)) {
     New-Item -Path $path -Name $docfile
 }
-if(![System.IO.File]::Exists($path+$docfile)) {
+if(![System.IO.File]::Exists($path+$reportfile)) {
     New-Item -Path $path -Name $reportfile
 }
-if(![System.IO.File]::Exists($path+$docfile)) {
-    New-Item -Path $path -Name 'tmp.txt'
+if(![System.IO.File]::Exists($path+$tempfile)) {
+    New-Item -Path $path -Name $tempfile
 }
 if(![System.IO.File]::Exists($path+$errorfile)) {
     New-Item -Path $path -Name $errorfile
@@ -42,8 +44,9 @@ if(![System.IO.File]::Exists($path+$errorfile)) {
 Clear-Content -Path $path$file
 Clear-Content -Path $path$docfile
 Clear-Content -Path $path$reportfile
-Clear-Content -Path $path'tmp.txt'
+Clear-Content -Path $path$tempfile
 Clear-Content -Path $path$errorfile
+
 function removeHTTP {
     param (
         $link
@@ -78,6 +81,7 @@ function formatUrl {
     param (
         $contentlink
     )
+
     $contentlink = $contentlink -replace ',','%2C'
     return $contentlink
 }
@@ -106,7 +110,7 @@ foreach ($link in $links) {
         } elseif (!( Get-Content $path$file | Where-Object { $_.Contains($contentlink) } )) {
             $contentlink = formatUrl -contentlink $contentlink
             Add-Content -Path $path$file -Value $contentlink
-            Add-Content -Path $path'tmp.txt' -Value $contentlink
+            Add-Content -Path $path$tempfile -Value $contentlink
             $contentlink
             $webcount++
         }
@@ -117,14 +121,14 @@ foreach ($link in $links) {
 }
 
 while ($unique) {
-    if ($null -eq (Get-Content -Path $path'tmp.txt')) {
+    if ($null -eq (Get-Content -Path $path$tempfile)) {
         $unique = $false
     }
 
-    $links = Get-Content $path'tmp.txt'
+    $links = Get-Content $path$tempfile
     $links = $links | Get-Unique
 
-    Clear-Content -Path $path'tmp.txt'
+    Clear-Content -Path $path$tempfile
 
     foreach ($link in $links) {
         try {
@@ -153,7 +157,7 @@ while ($unique) {
                         $duplicatecount++
                     }
                 } elseif (!( Get-Content $path$file | Where-Object { $_.Contains($contentlink) } )) {
-                    Add-Content -Path $path'tmp.txt' -Value $contentlink
+                    Add-Content -Path $path$tempfile -Value $contentlink
                     $contentlink = formatUrl -contentlink $contentlink
                     Add-Content -Path $path$file -Value $contentlink
                     $contentlink
@@ -170,9 +174,13 @@ while ($unique) {
     }
 }
 
-Remove-Item -Path $path'tmp.txt'
+Remove-Item -Path $path$tempfile
+if ($null -eq (Get-Content -Path $path$errorfile)) {
+    Remove-Item -Path $path$errorfile
+}
 
 $totalcount = $webcount + $filecount
+''
 'Duplicates: '+$duplicatecount
 'Web links: '+$webcount
 'Document links: '+$filecount
