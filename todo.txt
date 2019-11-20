@@ -1,10 +1,12 @@
-if $link.Contains($domain) - sitemap
-
-catch exceptions
-
-make recursive
-
 output to csv (escape commas in URL)
+, = %2C
+space = %20
 -include description
 -source link
 -file type
+
+clean up results before foreach
+
+object collection size cant change, use list instead
+
+list parent link
