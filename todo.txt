@@ -10,3 +10,9 @@ clean up results before foreach
 object collection size cant change, use list instead
 
 list parent link
+
+remove $path
+
+create log.txt
+
+track spider depth
