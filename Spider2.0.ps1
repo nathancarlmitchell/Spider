@@ -17,7 +17,7 @@ if(![System.IO.File]::Exists($path+$docfile)) {
 
 Clear-Content -Path $path$file
 Clear-Content -Path $path$docfile
-function replaceHTTP {
+function removeHTTP {
     param (
         $link
     )
@@ -33,31 +33,18 @@ function replaceHTTP {
     return $link
 }
 
-$link = $curl.BaseResponse.ResponseUri.AbsoluteUri
-$link = replaceHTTP -link $link
+$link = removeHTTP -link $curl.BaseResponse.ResponseUri.AbsoluteUri
 Add-Content -Path $path$file -Value $link
-
-
 
 $links = $curl.Links.href
 $links = $links | Get-Unique
-
-
 
 foreach ($link in $links) {
     if ($link.StartsWith('/') -or $link.Contains($domain)) {
         if ($link.StartsWith('/')) {
             $contentlink = $domain + $link           
         } elseif ($link.Contains($domain)) {
-            if ($link.Contains("https://")) {
-                $contentlink = $link -replace "https://"
-            } elseif ($link.Contains("http://")) {
-                $contentlink = $link -replace "http://"
-            } elseif ($link.Contains("http&#58;//")) {
-                $contentlink = $link -replace "http&#58;//"
-            } elseif ($link.Contains("https&#58;//")) {
-                $contentlink = $link -replace "https&#58;//"
-            }
+            $contentlink = removeHTTP -link $link
         }
         if (!( Get-Content $path$file | Where-Object { $_.Contains($contentlink) } )) {
             Add-Content -Path $path$file -Value $contentlink
@@ -67,7 +54,6 @@ foreach ($link in $links) {
 }
 
 # while unique = true
-Pause
 $links = Get-Content $path$file
 $links = $links | Get-Unique
 
@@ -79,16 +65,9 @@ foreach ($link in $links) {
             if ($result.StartsWith('/')) {
                 $contentlink = $domain + $result           
             } elseif ($result.Contains($domain)) {
-                if ($result.Contains("https://")) {
-                    $contentlink = $result -replace "https://"
-                } elseif ($result.Contains("http://")) {
-                    $contentlink = $result -replace "http://"
-                } elseif ($result.Contains("http&#58;//")) {
-                    $contentlink = $result -replace "http&#58;//"
-                } elseif ($result.Contains("https&#58;//")) {
-                    $contentlink = $result -replace "https&#58;//"
-                }
-            } if ($contentlink.EndsWith('.pdf') -or $contentlink.EndsWith('.xls') -or $contentlink.EndsWith('.xlsx') -or $contentlink.EndsWith('.doc') -or $contentlink.EndsWith('.docx') -or $contentlink.EndsWith('.mp4') -or $contentlink.EndsWith('.ppt') -or $contentlink.EndsWith('.pptx')) {
+                $contentlink = removeHTTP -link $result
+            }
+            if ($contentlink.EndsWith('.pdf') -or $contentlink.EndsWith('.xls') -or $contentlink.EndsWith('.xlsx') -or $contentlink.EndsWith('.doc') -or $contentlink.EndsWith('.docx') -or $contentlink.EndsWith('.mp4') -or $contentlink.EndsWith('.ppt') -or $contentlink.EndsWith('.pptx')) {
                 if (!( Get-Content $path$docfile | Where-Object { $_.Contains($contentlink) } )) {
                     Add-Content -Path $path$docfile -Value $contentlink
                     'Not a website: '+$contentlink
