@@ -1,18 +1,53 @@
 output to csv (escape commas in URL)
-, = %2C
-space = %20
--include description
--source link
--file type
+-include description: $curl.ParsedHtml.title ?
+-source link: $link
+-file type: $curl.Headers.'Content-Type'
+	return filetype from documentCheck()
+-http response: $curl.StatusCode
 
-clean up results before foreach
+New link: 
+Change 'not a website' to 'New document: '
 
-object collection size cant change, use list instead
+change $webcount to $linkcount
 
-list parent link
+-combine formatUrl and removeHttp and add removeWww
+-format url (replace space for Socrata)
+-remove , from errors
+-remove , from temp
+Use socrata to convert %% back to ,
 
 remove $path
+- needed for if file exists
 
-create log.txt
+add link / result to error log
 
-track spider depth
+add docs:
+dtm, ird, itl, eps, ai, 'xlsx?', agi, gci, itl, ird, glb, gdt, cel
+
+dont export errors to main .txt
+
+use finally to create report even if script fails
+
+if (http=200) { } else error
+
+write a script description for github
+
+progress bar
+###
+for($I = 1; $I -lt 101; $I++ )
+{
+    Write-Progress -Activity Updating -Status 'Progress->' -PercentComplete $I -CurrentOperation OuterLoop
+    for($j = 1; $j -lt 101; $j++ )
+    {
+        Write-Progress -Id 1 -Activity Updating -Status 'Progress' -PercentComplete $j -CurrentOperation InnerLoop
+    }
+}
+>>>
+Updating
+Progress ->
+ [ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo]
+OuterLoop
+Updating
+Progress
+ [oooooooooooooooooo                                                   ]
+InnerLoop
