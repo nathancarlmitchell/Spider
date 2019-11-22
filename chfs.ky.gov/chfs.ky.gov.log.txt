@@ -1,0 +1,9 @@
+Duplicates: 84874
+Web links: 1307
+Document links: 6363
+Total links: 7670
+Out of scope links: 33
+Errors: 754
+Depth: 6
+
+Complete in:  hours,  minutes,  seconds
