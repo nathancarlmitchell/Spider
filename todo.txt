@@ -1,15 +1,18 @@
 output to csv (escape commas in URL)
 -include description: $curl.ParsedHtml.title ?
 -source link: $link
--file type: $curl.Headers.'Content-Type'
+-file type: $request.Headers.'Content-Type'.Split(';')[0]
+-charset: $request.Headers.'Content-Type'.Split('=')[-1]
 	return filetype from documentCheck()
 -http response: $curl.StatusCode
+
+Seperate doctype from url
+
+check if file open error
 
 Sort files | unique at the end
 
 change $webcount to $linkcount
-
-update progress bar name details
 
 -combine formatUrl and removeHttp
 -format url (replace space for Socrata)
