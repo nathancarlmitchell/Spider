@@ -1,7 +1,7 @@
 # Nathan Carl Mitchell
 # nathancarlmitchell@gmail.com
 # https://github.com/nathancarlmitchell/Spider
-# Verion 2.6.1
+# Verion 2.6.2
 # PowerShell Version 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -206,8 +206,11 @@ function removeComma {
     return $lm
 }
 
-function DisplayInBytes($num) 
-{
+function DisplayInBytes() {
+    param (
+        $num
+    )
+
     $suffix = "B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"
     $index = 0
     while ($num -gt 1kb) 
@@ -388,10 +391,11 @@ if ($requestLinkInfo) {
         if ($link) {
             try {
                 $link = formatUrl -contentlink $link
-                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing -Method Head
+                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout
                 $lastModified = removeComma -lm $request.Headers.'Last-Modified'
                 $contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
-                $content = $link+','+($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1]+','+$request.StatusCode+','+$request.ParsedHtml.title+',' `
+                $title = removeComma -lm $request.ParsedHtml.'title'
+                $content = $link+','+($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1]+','+$request.StatusCode+','+$title+',' `
                 +$lastModified+','+$contentLength+','+$request.Headers.'Content-Length'
                 Add-Content -Path $path$linkfile -Value $content
             } catch {
