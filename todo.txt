@@ -1,13 +1,10 @@
 output to csv (escape commas in URL)
 -include description: $curl.ParsedHtml.title ?
 -source link: $link
--file type: $request.Headers.'Content-Type'.Split(';')[0]
--charset: $request.Headers.'Content-Type'.Split('=')[-1]
-	return filetype from documentCheck()
--http response: $curl.StatusCode
 
-request document information
--date modified
+include out-of-scope in report?
+
+depth count not accurate?
 
 Seperate doctype from url
 

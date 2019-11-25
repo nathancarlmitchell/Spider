@@ -1,7 +1,7 @@
 # Nathan Carl Mitchell
 # nathancarlmitchell@gmail.com
 # https://github.com/nathancarlmitchell/Spider
-# Verion 2.4.1
+# Verion 2.5.2
 # PowerShell Version 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -51,9 +51,47 @@ if ($args[3]) {
     }
 }
 
+if ($args[4]) {
+    if(($args[4]).ToLower().Contains('y')){
+        $requestLinkInfo = $true
+    } elseif (($args[4]).ToLower().Contains('n')) {
+        $requestLinkInfo = $false
+    }
+} else {
+    $p = Read-Host 'Request Link Information? (Slower performance) [y]/n'
+    if (!$p) {
+        $requestLinkInfo = $true
+    } else {
+        if(($p).ToLower().Contains('y')){
+            $requestLinkInfo = $true
+        } elseif (($p).ToLower().Contains('n')) {
+            $requestLinkInfo = $false
+        }
+    }
+}
+
+if ($args[5]) {
+    if(($args[5]).ToLower().Contains('y')){
+        $requestDocInfo = $true
+    } elseif (($args[4]).ToLower().Contains('n')) {
+        $requestDocInfo = $false
+    }
+} else {
+    $p = Read-Host 'Request Document Information? (Slower performance) [y]/n'
+    if (!$p) {
+        $requestDocInfo = $true
+    } else {
+        if(($p).ToLower().Contains('y')){
+            $requestDocInfo = $true
+        } elseif (($p).ToLower().Contains('n')) {
+            $requestDocInfo = $false
+        }
+    }
+}
+
 $request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
 $domain = $request.BaseResponse.ResponseUri.Host
-$path =  'C:\Users\Owner\Documents\Spider\2.2.1\'+$domain+'\'
+$path =  'C:\Users\nathan.mitchell\Documents\Spider\'+$domain+'\'
 $linkfile = $domain+'.links.csv'
 $docfile = $domain+'.docs.csv'
 $scopefile = $domain+'.out-of-scope.csv'
@@ -138,8 +176,12 @@ function documentCheck {
 }
 
 function documentType {
-    $doclink = ($contentlink.Split('.')[-1]).ToLower()
-    return $doclink
+    param (
+        $doclink
+    )
+
+    $doctype = ($doclink.Split('.')[-1]).ToLower()
+    return $doctype
 }
 
 function formatUrl {
@@ -153,11 +195,11 @@ function formatUrl {
 
 function removeComma {
     param (
-        $contentlink
+        $lm
     )
 
-    $contentlink = $contentlink -replace ','
-    return $contentlink
+    $lm = $lm -replace ',','.'
+    return $lm
 }
 
 $link = removeHTTP -link $request.BaseResponse.ResponseUri.AbsoluteUri
@@ -183,9 +225,7 @@ foreach ($link in $links) {
             if (documentCheck) {
                 if (!( Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) } )) {
                     $contentlink = formatUrl -contentlink $contentlink
-                    $doctype = documentType
-                    $content = $contentlink+','+$doctype
-                    Add-Content -Path $path$docfile -Value $content
+                    Add-Content -Path $path$docfile -Value $contentlink
                     'New Document: '+$contentlink
                     $contentlink
                     $filecount++
@@ -255,9 +295,7 @@ while ($unique) {
                         if (documentCheck) {
                             if (!( Get-Content $path$docfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) } )) {
                                 $contentlink = formatUrl -contentlink $contentlink
-                                $doctype = documentType
-                                $content = $contentlink+','+$doctype
-                                Add-Content -Path $path$docfile -Value $content
+                                Add-Content -Path $path$docfile -Value $contentlink
                                 'New Document: '+$contentlink
                                 $filecount++
                             } else {
@@ -320,40 +358,84 @@ Add-Content -Path $path$logfile -Value $value
 $value = 'Depth: '+$depth
 Add-Content -Path $path$logfile -Value $value
 
-$links = Get-Content -Path $path$linkfile
-Clear-Content -Path $path$linkfile
-$linksCount = $links.Count
-$linkCount = 0
-foreach($link in $links) {
-    $linkCount++
-    $linkProgress = ($linkCount/$linksCount)*100
-    $linkProgress = "{0:n2}" -f $linkProgress
-    Write-Progress -Activity "Requesting Link Information: $link" -Status "Complete: $linkProgress" -PercentComplete $linkProgress -CurrentOperation ' '
-    if ($link) {
-        try {
-            $link = formatUrl -contentlink $link
-            $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
-            $content = $link+','+$request.Headers.'Content-Type'.Split(';')[0]+','+$request.StatusCode+','+$request.ParsedHtml.title
-            $request.ParsedHtml.Title
-            Add-Content -Path $path$linkfile -Value $content
-        } catch {
-            if ((($_ -split '\n')[0]).Contains("401") -or (($_ -split '\n')[0]).Contains("Unauthorized")) {
-                $content = $link + ',error,401,' + ($_ -split '\n')[0]
-            } elseif ((($_ -split '\n')[0]).Contains("Forbidden") -or (($_ -split '\n')[0]).Contains("You do not have permission")) {
-              # -or (($_ -split '\n')[1]).Contains("403")
-                $content = $link + ',error,403,' + ($_ -split '\n')[0]
-            } elseif ((($_ -split '\n')[0]).Contains("404") -or (($_ -split '\n')[0]).Contains("Not Found") -or (($_ -split '\n')[0]).Contains("not found") -or (($_ -split '\n')[0]).Contains("could be found") -or (($_ -split '\n')[0]).Contains("The resource you are looking for has been removed")) {
-                $content = $link + ',error,404,' + ($_ -split '\n')[4]
-            } elseif ((($_ -split '\n')[0]).Contains("Unable to connect to the remote server") -or (($_ -split '\n')[0]).Contains("The operation has timed out.")) {       
-                $content = $link + ',error,408,' + ($_ -split '\n')[0]
-            } elseif ((($_ -split '\n')[0]).Contains("Server Error")) {        
-                $content = $link + ',error,500,' + ($_ -split '\n')[0] 
-            } elseif ((($_ -split '\n')[0]).Contains("Service Unavailable")) {        
-                $content = $link + ',error,503,' + ($_ -split '\n')[0] 
-            } else {
-                $content = $link + ',error,,' + ($_ -split '\n')[0]
+if ($requestLinkInfo) {
+    $links = Get-Content -Path $path$linkfile
+    Clear-Content -Path $path$linkfile
+    $linksCount = $links.Count
+    $linkCount = 0
+    foreach($link in $links) {
+        $linkCount++
+        $linkProgress = ($linkCount/$linksCount)*100
+        $linkProgress = "{0:n2}" -f $linkProgress
+        Write-Progress -Activity "Requesting Link Information: $link" -Status "Complete: $linkProgress" -PercentComplete $linkProgress -CurrentOperation ' '
+        if ($link) {
+            try {
+                $link = formatUrl -contentlink $link
+                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
+                $lastModified = removeComma -lm $request.Headers.'Last-Modified'
+                $content = $link+','+($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1]+','+$request.StatusCode+','+$request.ParsedHtml.title+',' `
+                +$lastModified
+                Add-Content -Path $path$linkfile -Value $content
+            } catch {
+                if ((($_ -split '\n')[0]).Contains("401") -or (($_ -split '\n')[0]).Contains("Unauthorized")) {
+                    $content = $link + ',error,401,' + ($_ -split '\n')[0]
+                } elseif ((($_ -split '\n')[0]).Contains("Forbidden") -or (($_ -split '\n')[0]).Contains("You do not have permission")) {
+                    $content = $link + ',error,403,' + ($_ -split '\n')[0]
+                } elseif ((($_ -split '\n')[0]).Contains("404") -or (($_ -split '\n')[0]).Contains("Not Found") -or (($_ -split '\n')[0]).Contains("not found") -or (($_ -split '\n')[0]).Contains("could be found") -or (($_ -split '\n')[0]).Contains("The resource you are looking for has been removed")) {
+                    $content = $link + ',error,404,' + ($_ -split '\n')[4]
+                } elseif ((($_ -split '\n')[0]).Contains("Unable to connect to the remote server") -or (($_ -split '\n')[0]).Contains("The operation has timed out.")) {       
+                    $content = $link + ',error,408,' + ($_ -split '\n')[0]
+                } elseif ((($_ -split '\n')[0]).Contains("Server Error")) {        
+                    $content = $link + ',error,500,' + ($_ -split '\n')[0] 
+                } elseif ((($_ -split '\n')[0]).Contains("Service Unavailable")) {        
+                    $content = $link + ',error,503,' + ($_ -split '\n')[0] 
+                } else {
+                    $content = $link + ',error,,' + ($_ -split '\n')[0]
+                }
+                Add-Content -Path $path$linkfile -Value $content
             }
-            Add-Content -Path $path$linkfile -Value $content
+        }
+    }
+}
+
+if ($requestDocInfo) {
+    $links = Get-Content -Path $path$docfile
+    Clear-Content -Path $path$docfile
+    $linksCount = $links.Count
+    $linkCount = 0
+    foreach($link in $links) {
+        $linkCount++
+        $linkProgress = ($linkCount/$linksCount)*100
+        $linkProgress = "{0:n2}" -f $linkProgress
+        Write-Progress -Activity "Requesting Document Information: $link" -Status "Complete: $linkProgress" -PercentComplete $linkProgress -CurrentOperation ' '
+        if ($link) {
+            $doctype = documentType -doclink $link
+            try {
+                $link = formatUrl -contentlink $link
+                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing -Method Get
+                $lastModified = removeComma -lm $request.Headers.'Last-Modified'
+                $content = $link+','+$doctype+','+$request.StatusCode+','+$request.ParsedHtml.title+',' `
+                +$lastModified
+                $request.ParsedHtml.Title
+                Add-Content -Path $path$docfile -Value $content
+            } catch {
+                if ((($_ -split '\n')[0]).Contains("401") -or (($_ -split '\n')[0]).Contains("Unauthorized")) {
+                    $content = $link + ','+$doctype+',401,' + ($_ -split '\n')[0]
+                } elseif ((($_ -split '\n')[0]).Contains("Forbidden") -or (($_ -split '\n')[0]).Contains("You do not have permission")) {
+                    $content = $link + ','+$doctype+',403,' + ($_ -split '\n')[0]
+                } elseif ((($_ -split '\n')[0]).Contains("404") -or (($_ -split '\n')[0]).Contains("Not Found") -or (($_ -split '\n')[0]).Contains("not found") -or (($_ -split '\n')[0]).Contains("could be found") -or (($_ -split '\n')[0]).Contains("The resource you are looking for has been removed")) {
+                    $content = $link +  ','+$doctype+',404,' + ($_ -split '\n')[4]
+                } elseif ((($_ -split '\n')[0]).Contains("Unable to connect to the remote server") -or (($_ -split '\n')[0]).Contains("The operation has timed out.")) {       
+                    $content = $link +  ','+$doctype+',408,' + ($_ -split '\n')[0]
+                } elseif ((($_ -split '\n')[0]).Contains("Server Error")) {        
+                    $content = $link +  ','+$doctype+',500,' + ($_ -split '\n')[0] 
+                } elseif ((($_ -split '\n')[0]).Contains("Service Unavailable")) {        
+                    $content = $link +  ','+$doctype+',503,' + ($_ -split '\n')[0] 
+                } else {
+                    $content = $link +  ','+$doctype+',error,' + ($_ -split '\n')[0]
+                }
+                Add-Content -Path $path$docfile -Value $content
+            }
         }
     }
 }
@@ -361,7 +443,7 @@ foreach($link in $links) {
 $report = Get-Content -Path $path$linkfile
 $report += Get-Content -Path $path$docfile
 $report = $report | Sort-Object | Get-Unique
-Add-Content -Path $path$reportfile -Value 'URL,Content,HTTP Status,Description'
+Add-Content -Path $path$reportfile -Value 'URL,Content,HTTP Status,Description,Date Modified'
 Add-Content -Path $path$reportfile -Value $report
 
 $EndDate = Get-Date
