@@ -1,7 +1,7 @@
 # Nathan Carl Mitchell
 # nathancarlmitchell@gmail.com
 # https://github.com/nathancarlmitchell/Spider
-# Verion 2.5.2
+# Verion 2.6.1
 # PowerShell Version 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -89,6 +89,10 @@ if ($args[5]) {
     }
 }
 
+#$path =  'C:\Users\nathan.mitchell\Documents\Spider\'
+#$urls = Get-Content $path'http.txt'
+
+#foreach ($url in $urls) {
 $request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
 $domain = $request.BaseResponse.ResponseUri.Host
 $path =  'C:\Users\nathan.mitchell\Documents\Spider\'+$domain+'\'
@@ -200,6 +204,19 @@ function removeComma {
 
     $lm = $lm -replace ',','.'
     return $lm
+}
+
+function DisplayInBytes($num) 
+{
+    $suffix = "B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"
+    $index = 0
+    while ($num -gt 1kb) 
+    {
+        $num = $num / 1kb
+        $index++
+    } 
+
+    "{0:F1} {1}" -f $num, $suffix[$index]
 }
 
 $link = removeHTTP -link $request.BaseResponse.ResponseUri.AbsoluteUri
@@ -371,10 +388,11 @@ if ($requestLinkInfo) {
         if ($link) {
             try {
                 $link = formatUrl -contentlink $link
-                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
+                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing -Method Head
                 $lastModified = removeComma -lm $request.Headers.'Last-Modified'
+                $contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
                 $content = $link+','+($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1]+','+$request.StatusCode+','+$request.ParsedHtml.title+',' `
-                +$lastModified
+                +$lastModified+','+$contentLength+','+$request.Headers.'Content-Length'
                 Add-Content -Path $path$linkfile -Value $content
             } catch {
                 if ((($_ -split '\n')[0]).Contains("401") -or (($_ -split '\n')[0]).Contains("Unauthorized")) {
@@ -412,10 +430,11 @@ if ($requestDocInfo) {
             $doctype = documentType -doclink $link
             try {
                 $link = formatUrl -contentlink $link
-                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing -Method Get
+                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing -Method Head
                 $lastModified = removeComma -lm $request.Headers.'Last-Modified'
+                $contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
                 $content = $link+','+$doctype+','+$request.StatusCode+','+$request.ParsedHtml.title+',' `
-                +$lastModified
+                +$lastModified+','+$contentLength+','+$request.Headers.'Content-Length'
                 $request.ParsedHtml.Title
                 Add-Content -Path $path$docfile -Value $content
             } catch {
@@ -443,7 +462,7 @@ if ($requestDocInfo) {
 $report = Get-Content -Path $path$linkfile
 $report += Get-Content -Path $path$docfile
 $report = $report | Sort-Object | Get-Unique
-Add-Content -Path $path$reportfile -Value 'URL,Content,HTTP Status,Description,Date Modified'
+Add-Content -Path $path$reportfile -Value 'URL,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
 Add-Content -Path $path$reportfile -Value $report
 
 $EndDate = Get-Date
@@ -453,3 +472,4 @@ $TimeSpan
 Add-Content -Path $path$logfile -Value ''
 $value = 'Complete in: '+$TimeSpan.Hours+' hours, '+$TimeSpan.Minutes+' minutes, '+$TimeSpan.Seconds+' seconds'
 Add-Content -Path $path$logfile -Value $value
+#}

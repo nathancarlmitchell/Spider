@@ -3,6 +3,7 @@ output to csv (escape commas in URL)
 -source link: $link
 
 include out-of-scope in report?
+-kits.pdf
 
 depth count not accurate?
 
