@@ -6,17 +6,17 @@ output to csv (escape commas in URL)
 	return filetype from documentCheck()
 -http response: $curl.StatusCode
 
+request document information
+-date modified
+
 Seperate doctype from url
 
 check if file open error
-
-Sort files | unique at the end
 
 change $webcount to $linkcount
 
 -combine formatUrl and removeHttp
 -format url (replace space for Socrata)
--remove , from errors
 -remove , from temp
 Use socrata to convert %% back to ,
 
@@ -32,7 +32,5 @@ dtm, ird, itl, eps, ai, 'xlsx?', agi, gci, itl, ird, glb, gdt, cel
 dont export errors to main .txt
 
 use finally to create report even if script fails
-
-if (http=200) { } else error
 
 write a script description for github

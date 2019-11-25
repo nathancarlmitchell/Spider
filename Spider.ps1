@@ -1,7 +1,7 @@
 # Nathan Carl Mitchell
 # nathancarlmitchell@gmail.com
 # https://github.com/nathancarlmitchell/Spider
-# Verion 2.3.2
+# Verion 2.4.1
 # PowerShell Version 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -36,15 +36,24 @@ if ($args[1]) {
 if ($args[2]) {
     $maxDepth = $args[2]
 } else {
-    $maxDepth = Read-Host 'Max Depth? (number 1 - 99) [25]'
+    $maxDepth = Read-Host 'Max Depth? (1 - 99) [25]'
     if (!$maxDepth){
         $maxDepth = 25
     }
 }
 
-$request = Invoke-WebRequest $url -UseBasicParsing
+if ($args[3]) {
+    $requestTimeout = $args[3]
+} else {
+    $requestTimeout = Read-Host 'Request Timeout? (Seconds 1 - 99) [15]'
+    if (!$requestTimeout){
+        $requestTimeout = 15
+    }
+}
+
+$request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
 $domain = $request.BaseResponse.ResponseUri.Host
-$path =  'C:\Users\nathan.mitchell\Documents\Spider\'+$domain+'\'
+$path =  'C:\Users\Owner\Documents\Spider\2.2.1\'+$domain+'\'
 $linkfile = $domain+'.links.csv'
 $docfile = $domain+'.docs.csv'
 $scopefile = $domain+'.out-of-scope.csv'
@@ -142,6 +151,15 @@ function formatUrl {
     return $contentlink
 }
 
+function removeComma {
+    param (
+        $contentlink
+    )
+
+    $contentlink = $contentlink -replace ','
+    return $contentlink
+}
+
 $link = removeHTTP -link $request.BaseResponse.ResponseUri.AbsoluteUri
 Add-Content -Path $path$linkfile -Value $link
 $webcount++
@@ -208,9 +226,10 @@ while ($unique) {
             $linkProgress = "{0:n2}" -f $linkProgress
             Write-Progress -Activity "Search in Progress: $link" -Status "Complete: $linkProgress% Depth: $depth" -PercentComplete $linkProgress -CurrentOperation ' '
             try {
-                $request = Invoke-WebRequest $link -UseBasicParsing
+                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
             } catch {
-                $errormessage = $_.TargetObject.Address.AbsoluteUri + ',' + $_.ErrorDetails
+                $errorlink = formatUrl -contentlink $_.TargetObject.Address.AbsoluteUri 
+                $errormessage = $errorlink + ',' + $_.ErrorDetails
                 Add-Content -Path $path$errorfile -Value $errormessage
                 $errors++
             }
@@ -286,10 +305,6 @@ $totalcount = $webcount + $filecount
 'Errors: '+$errors
 'Depth: '+$depth
 
-$EndDate = Get-Date
-$TimeSpan = New-TimeSpan -Start $StartDate -End $EndDate
-$TimeSpan
-
 $value = 'Duplicates: '+$duplicatecount
 Add-Content -Path $path$logfile -Value $value
 $value = 'Web links: '+$webcount
@@ -304,9 +319,6 @@ $value = 'Errors: '+$errors
 Add-Content -Path $path$logfile -Value $value
 $value = 'Depth: '+$depth
 Add-Content -Path $path$logfile -Value $value
-Add-Content -Path $path$logfile -Value ''
-$value = 'Complete in: '+$TimeSpan.Hours+' hours, '+$TimeSpan.Minutes+' minutes, '+$TimeSpan.Seconds+' seconds'
-Add-Content -Path $path$logfile -Value $value
 
 $links = Get-Content -Path $path$linkfile
 Clear-Content -Path $path$linkfile
@@ -319,12 +331,28 @@ foreach($link in $links) {
     Write-Progress -Activity "Requesting Link Information: $link" -Status "Complete: $linkProgress" -PercentComplete $linkProgress -CurrentOperation ' '
     if ($link) {
         try {
-            $request = Invoke-WebRequest $link -UseBasicParsing
+            $link = formatUrl -contentlink $link
+            $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
             $content = $link+','+$request.Headers.'Content-Type'.Split(';')[0]+','+$request.StatusCode+','+$request.ParsedHtml.title
             $request.ParsedHtml.Title
             Add-Content -Path $path$linkfile -Value $content
         } catch {
-            $content = $link+',,,'
+            if ((($_ -split '\n')[0]).Contains("401") -or (($_ -split '\n')[0]).Contains("Unauthorized")) {
+                $content = $link + ',error,401,' + ($_ -split '\n')[0]
+            } elseif ((($_ -split '\n')[0]).Contains("Forbidden") -or (($_ -split '\n')[0]).Contains("You do not have permission")) {
+              # -or (($_ -split '\n')[1]).Contains("403")
+                $content = $link + ',error,403,' + ($_ -split '\n')[0]
+            } elseif ((($_ -split '\n')[0]).Contains("404") -or (($_ -split '\n')[0]).Contains("Not Found") -or (($_ -split '\n')[0]).Contains("not found") -or (($_ -split '\n')[0]).Contains("could be found") -or (($_ -split '\n')[0]).Contains("The resource you are looking for has been removed")) {
+                $content = $link + ',error,404,' + ($_ -split '\n')[4]
+            } elseif ((($_ -split '\n')[0]).Contains("Unable to connect to the remote server") -or (($_ -split '\n')[0]).Contains("The operation has timed out.")) {       
+                $content = $link + ',error,408,' + ($_ -split '\n')[0]
+            } elseif ((($_ -split '\n')[0]).Contains("Server Error")) {        
+                $content = $link + ',error,500,' + ($_ -split '\n')[0] 
+            } elseif ((($_ -split '\n')[0]).Contains("Service Unavailable")) {        
+                $content = $link + ',error,503,' + ($_ -split '\n')[0] 
+            } else {
+                $content = $link + ',error,,' + ($_ -split '\n')[0]
+            }
             Add-Content -Path $path$linkfile -Value $content
         }
     }
@@ -333,5 +361,13 @@ foreach($link in $links) {
 $report = Get-Content -Path $path$linkfile
 $report += Get-Content -Path $path$docfile
 $report = $report | Sort-Object | Get-Unique
-Add-Content -Path $path$reportfile -Value 'URL,Content,HTTP Status,Title'
+Add-Content -Path $path$reportfile -Value 'URL,Content,HTTP Status,Description'
 Add-Content -Path $path$reportfile -Value $report
+
+$EndDate = Get-Date
+$TimeSpan = New-TimeSpan -Start $StartDate -End $EndDate
+$TimeSpan
+
+Add-Content -Path $path$logfile -Value ''
+$value = 'Complete in: '+$TimeSpan.Hours+' hours, '+$TimeSpan.Minutes+' minutes, '+$TimeSpan.Seconds+' seconds'
+Add-Content -Path $path$logfile -Value $value
