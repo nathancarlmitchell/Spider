@@ -1,7 +1,7 @@
 # Nathan Carl Mitchell
 # nathancarlmitchell@gmail.com
 # https://github.com/nathancarlmitchell/Spider
-# Verion 2.6.2
+# Verion 2.6.4
 # PowerShell Version 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -36,9 +36,9 @@ if ($args[1]) {
 if ($args[2]) {
     $maxDepth = $args[2]
 } else {
-    $maxDepth = Read-Host 'Max Depth? (1 - 99) [25]'
+    $maxDepth = Read-Host 'Max Depth? (1 - 99) [10]'
     if (!$maxDepth){
-        $maxDepth = 25
+        $maxDepth = 10
     }
 }
 
@@ -194,6 +194,10 @@ function formatUrl {
     )
 
     $contentlink = $contentlink -replace ',','%2C'
+    $contentlink = $contentlink -replace ' ','%20'
+    if ($contentlink.EndsWith('#')) {
+        $contentlink = $contentlink -replace '#'
+    }
     return $contentlink
 }
 
@@ -236,6 +240,7 @@ foreach ($link in $links) {
     $linkProgress = "{0:n2}" -f $linkProgress
     Write-Progress -Activity "Search in Progress: $domain" -Status "Complete: $linkProgress% Depth: $depth" -PercentComplete $linkProgress
     if ($link) {
+        $link = formatUrl -contentlink $link
         if ($link.StartsWith('/') -or $link.Contains($domain)) {
             if ($link.StartsWith('/')) {
                 $contentlink = $domain + $link           
@@ -244,14 +249,11 @@ foreach ($link in $links) {
             }
             if (documentCheck) {
                 if (!( Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) } )) {
-                    $contentlink = formatUrl -contentlink $contentlink
                     Add-Content -Path $path$docfile -Value $contentlink
                     'New Document: '+$contentlink
-                    $contentlink
                     $filecount++
                 }
             } elseif (!( Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) } )) {
-                $contentlink = formatUrl -contentlink $contentlink
                 Add-Content -Path $path$linkfile -Value $contentlink
                 Add-Content -Path $path$tempfile -Value $contentlink
                 'New Link: '+$contentlink
@@ -259,8 +261,7 @@ foreach ($link in $links) {
             }
         } else {
             $link = removeHTTP -link $link
-            $link = formatUrl -contentlink $link
-            if (!( Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($link).ToLower()) } )) {  
+            if (!( Get-Content $path$scopefile | Where-Object { ($_).ToLower().Contains(($link).ToLower()) } )) {  
                 Add-Content -Path $path$scopefile -Value $link
                 $outofscope++
                 'Out of scope: '+$link
@@ -281,62 +282,65 @@ while ($unique) {
         $linksCount = $links.Count
         $linkCount = 0
         foreach ($link in $links) {
-            $linkCount++
-            $linkProgress = ($linkCount/$linksCount)*100
-            $linkProgress = "{0:n2}" -f $linkProgress
-            Write-Progress -Activity "Search in Progress: $link" -Status "Complete: $linkProgress% Depth: $depth" -PercentComplete $linkProgress -CurrentOperation ' '
-            try {
-                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
-            } catch {
-                $errorlink = formatUrl -contentlink $_.TargetObject.Address.AbsoluteUri 
-                $errormessage = $errorlink + ',' + $_.ErrorDetails
-                Add-Content -Path $path$errorfile -Value $errormessage
-                $errors++
-            }
-            $results = $request.Links.href
-            if ($progress) {
-                $resultCount = $results.Count
-                $requestCount = 0
-            }
-            foreach ($result in $results) {
-                if ($progress) {
-                    $requestCount++
-                    $requestProgress = ($requestCount/$resultCount)*100
-                    $requestProgress = "{0:n2}" -f $requestProgress
-                    Write-Progress -Id 1 -Activity "Result: $result" -Status 'Progress' -PercentComplete $requestProgress -CurrentOperation ' '
+            if ($link) {
+                $linkCount++
+                $linkProgress = ($linkCount/$linksCount)*100
+                $linkProgress = "{0:n2}" -f $linkProgress
+                Write-Progress -Activity "Search in Progress: $link" -Status "Complete: $linkProgress% Depth: $depth" -PercentComplete $linkProgress -CurrentOperation ' '
+                try {
+                    $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
+                } catch {
+                    $errorlink = formatUrl -contentlink $_.TargetObject.Address.AbsoluteUri
+                    #$errorDetails = replaceComma $_.ErrorDetails -replace NewLine
+                    $errormessage = $errorlink + ',' + $_.ErrorDetails
+                    Add-Content -Path $path$errorfile -Value $errormessage
+                    $errors++
                 }
-                if ($result) {
-                    if ($result.StartsWith('/') -or $result.Contains($domain)) {
-                        if ($result.StartsWith('/')) {
-                            $contentlink = $domain + $result           
-                        } elseif ($result.Contains($domain)) {
-                            $contentlink = removeHTTP -link $result
-                        }
-                        if (documentCheck) {
-                            if (!( Get-Content $path$docfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) } )) {
-                                $contentlink = formatUrl -contentlink $contentlink
-                                Add-Content -Path $path$docfile -Value $contentlink
-                                'New Document: '+$contentlink
-                                $filecount++
+                $results = $request.Links.href
+                if ($progress) {
+                    $resultCount = $results.Count
+                    $requestCount = 0
+                }
+                foreach ($result in $results) {
+                    if ($progress) {
+                        $requestCount++
+                        $requestProgress = ($requestCount/$resultCount)*100
+                        $requestProgress = "{0:n2}" -f $requestProgress
+                        Write-Progress -Id 1 -Activity "Result: $result" -Status 'Progress' -PercentComplete $requestProgress -CurrentOperation ' '
+                    }
+                    if ($result) {
+                        $result = formatUrl -contentlink $result
+                        if ($result.StartsWith('/') -or $result.Contains($domain)) {
+                            if ($result.StartsWith('/')) {
+                                $contentlink = $domain + $result           
+                            } elseif ($result.Contains($domain)) {
+                                $contentlink = removeHTTP -link $result
+                            }
+                            if (documentCheck) {
+                                if (!( Get-Content $path$docfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) } )) {
+                                    Add-Content -Path $path$docfile -Value $contentlink
+                                    'New Document: '+$contentlink
+                                    $filecount++
+                                } else {
+                                    $duplicatecount++
+                                }
+                            } elseif (!( Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) } )) {
+                                if ($contentlink.Contains($domain)) {
+                                    Add-Content -Path $path$tempfile -Value $contentlink
+                                }
+                                Add-Content -Path $path$linkfile -Value $contentlink
+                                'New Link: '+$contentlink
+                                $webcount++
                             } else {
                                 $duplicatecount++
                             }
-                        } elseif (!( Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) } )) {
-                            Add-Content -Path $path$tempfile -Value $contentlink
-                            $contentlink = formatUrl -contentlink $contentlink
-                            Add-Content -Path $path$linkfile -Value $contentlink
-                            'New Link: '+$contentlink
-                            $webcount++
                         } else {
-                            $duplicatecount++
-                        }
-                    } else {
-                        $link = removeHTTP -link $link
-                        $link = formatUrl -contentlink $link
-                        if (!( Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($link).ToLower()) } )) {
-                            Add-Content -Path $path$scopefile -Value $link
-                            $outofscope++
-                            'Out of scope: '+$result
+                            $result = removeHTTP -link $result
+                            if (!( Get-Content $path$scopefile | Where-Object { ($_).ToLower().Contains(($result).ToLower()) } )) {
+                                Add-Content -Path $path$scopefile -Value $result
+                                $outofscope++
+                                'Out of scope: '+$result
+                            }
                         }
                     }
                 }
@@ -350,6 +354,8 @@ while ($unique) {
 Remove-Item -Path $path$tempfile
 if ($errors -eq 0) {
     Remove-Item -Path $path$errorfile
+} else {
+    #Sort and unique
 }
 
 $totalcount = $webcount + $filecount
@@ -379,7 +385,7 @@ $value = 'Depth: '+$depth
 Add-Content -Path $path$logfile -Value $value
 
 if ($requestLinkInfo) {
-    $links = Get-Content -Path $path$linkfile
+    $links = Get-Content -Path $path$linkfile | Sort-Object | Get-Unique
     Clear-Content -Path $path$linkfile
     $linksCount = $links.Count
     $linkCount = 0
@@ -391,10 +397,14 @@ if ($requestLinkInfo) {
         if ($link) {
             try {
                 $link = formatUrl -contentlink $link
-                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout
+                $request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
                 $lastModified = removeComma -lm $request.Headers.'Last-Modified'
                 $contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
-                $title = removeComma -lm $request.ParsedHtml.'title'
+                $title = $request.Content.Split('<') | Where-Object {$_.Contains('title')}
+                $title = $title.split('>')[1]
+                $title = $title -replace ([Environment]::NewLine)
+                $title = $title -replace ('  ')
+                $title = removeComma -lm $title
                 $content = $link+','+($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1]+','+$request.StatusCode+','+$title+',' `
                 +$lastModified+','+$contentLength+','+$request.Headers.'Content-Length'
                 Add-Content -Path $path$linkfile -Value $content
@@ -421,7 +431,7 @@ if ($requestLinkInfo) {
 }
 
 if ($requestDocInfo) {
-    $links = Get-Content -Path $path$docfile
+    $links = Get-Content -Path $path$docfile | Sort-Object | Get-Unique
     Clear-Content -Path $path$docfile
     $linksCount = $links.Count
     $linkCount = 0
@@ -462,6 +472,10 @@ if ($requestDocInfo) {
         }
     }
 }
+
+$report = Get-Content -Path $path$scopefile
+$report = $report | Sort-Object | Get-Unique
+Add-Content -Path $path$scopefile -Value $report
 
 $report = Get-Content -Path $path$linkfile
 $report += Get-Content -Path $path$docfile

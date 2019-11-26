@@ -2,6 +2,8 @@ output to csv (escape commas in URL)
 -include description: $curl.ParsedHtml.title ?
 -source link: $link
 
+sort and unique errors, links
+
 include out-of-scope in report?
 -kits.pdf
 
@@ -14,7 +16,6 @@ check if file open error
 change $webcount to $linkcount
 
 -combine formatUrl and removeHttp
--format url (replace space for Socrata)
 -remove , from temp
 Use socrata to convert %% back to ,
 
