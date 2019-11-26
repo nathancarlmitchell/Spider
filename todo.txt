@@ -1,6 +1,6 @@
-output to csv (escape commas in URL)
--include description: $curl.ParsedHtml.title ?
--source link: $link
+source link
+
+file description (split(/) replace %20)
 
 sort and unique errors, links
 
