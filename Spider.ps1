@@ -229,6 +229,9 @@ function formatReadable {
 	#$contentlink = $contentlink.Split('.')[0]
 	$contentlink = $contentlink -replace '%2C',' '
 	$contentlink = $contentlink -replace '%20',' '
+	$contentlink = $contentlink -replace '%27',"'"
+	$contentlink = $contentlink -replace '%28',"("
+	$contentlink = $contentlink -replace '%29',")"
 	return $contentlink
 }
 
