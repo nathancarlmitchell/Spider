@@ -1,7 +1,7 @@
 # Nathan Carl Mitchell
 # nathancarlmitchell@gmail.com
 # https://github.com/nathancarlmitchell/Spider
-# Verion 2.6.4
+# Verion 2.7.1
 # PowerShell Version 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -45,9 +45,9 @@ if ($args[2]) {
 if ($args[3]) {
 	$requestTimeout = $args[3]
 } else {
-	$requestTimeout = Read-Host 'Request Timeout? (Seconds 1 - 99) [15]'
+	$requestTimeout = Read-Host 'Request Timeout? (Seconds 1 - 99) [10]'
 	if (!$requestTimeout) {
-		$requestTimeout = 15
+		$requestTimeout = 10
 	}
 }
 
@@ -220,6 +220,18 @@ function formatUrl {
 	return $contentlink
 }
 
+function formatReadable {
+	param(
+		$contentlink
+	)
+
+	$contentlink = $contentlink.Split('/')[-1]
+	#$contentlink = $contentlink.Split('.')[0]
+	$contentlink = $contentlink -replace '%2C',' '
+	$contentlink = $contentlink -replace '%20',' '
+	return $contentlink
+}
+
 function removeComma {
 	param(
 		$lm
@@ -249,6 +261,7 @@ $link = removeHTTP -link $request.BaseResponse.ResponseUri.AbsoluteUri
 Add-Content -Path $path$linkfile -Value $link
 $webcount++
 
+#$scope = '.' + $domain.split('.')[1] + '.' + $domain.split('.')[2]
 $links = $request.Links.href
 $links = $links | Sort-Object | Get-Unique
 $linksCount = $links.Count
@@ -260,6 +273,7 @@ foreach ($link in $links) {
 	Write-Progress -Activity "Search in Progress: $domain" -Status "Complete: $linkProgress% Depth: $depth" -PercentComplete $linkProgress
 	if ($link) {
 		$link = formatUrl -contentlink $link
+		#or $link.Contains($scope)
 		if ($link.StartsWith('/') -or $link.Contains($domain)) {
 			if ($link.StartsWith('/')) {
 				$contentlink = $domain + $link
@@ -274,6 +288,7 @@ foreach ($link in $links) {
 				}
 			} elseif (!(Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) })) {
 				Add-Content -Path $path$linkfile -Value $contentlink
+				#if ($contentlink.Contains($domain))
 				Add-Content -Path $path$tempfile -Value $contentlink
 				'New Link: ' + $contentlink
 				$webcount++
@@ -375,6 +390,7 @@ while ($unique) {
 }
 
 Remove-Item -Path $path$tempfile
+
 if ($errors -eq 0) {
 	Remove-Item -Path $path$errorfile
 } else {
@@ -464,7 +480,9 @@ if ($requestLinkInfo) {
 } else {
 	$content = Get-Content -Path $path$linkfile | Sort-Object | Get-Unique
 	Clear-Content -Path $path$linkfile
-	Add-Content -Path $path$linkfile -Value $linkfile
+	foreach($c in $content) {
+		Add-Content -Path $path$linkfile -Value $c
+	}
 }
 
 if ($requestDocInfo) {
@@ -484,7 +502,8 @@ if ($requestDocInfo) {
 				$request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing -Method Head
 				$lastModified = removeComma -lm $request.Headers.'Last-Modified'
 				$contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
-				$content = $link + ',' + $doctype + ',' + $request.StatusCode + ',' + $request.ParsedHtml.title + ',' `
+				$title = formatReadable -contentlink $link
+				$content = $link + ',' + $doctype + ',' + $request.StatusCode + ',' + $title + ',' `
  					+ $lastModified + ',' + $contentLength + ',' + $request.Headers.'Content-Length'
 				$request.ParsedHtml.title
 				Add-Content -Path $path$docfile -Value $content
@@ -513,13 +532,19 @@ if ($requestDocInfo) {
 } else {
 	$content = Get-Content -Path $path$docfile | Sort-Object | Get-Unique
 	Clear-Content -Path $path$docfile
-	Add-Content -Path $path$docfile -Value $content
+	foreach($c in $content) {
+		Add-Content -Path $path$docfile -Value $c
+	}
 }
 
-$content = Get-Content -Path $path$scopefile
-Clear-Content -Path $path$scopefile
-$content = $content | Sort-Object | Get-Unique
-Add-Content -Path $path$scopefile -Value $content
+if ($outofscope -eq 0) {
+	Remove-Item -Path $path$scopefile
+} else {
+	$content = Get-Content -Path $path$scopefile
+	Clear-Content -Path $path$scopefile
+	$content = $content | Sort-Object | Get-Unique
+	Add-Content -Path $path$scopefile -Value $content
+}
 
 $content = Get-Content -Path $path$linkfile
 $content += Get-Content -Path $path$docfile

@@ -1,6 +1,11 @@
 source link
+-get the link/document info as the scan runs to document source link
 
-file description (split(/) replace %20)
+$scope = '.' + $domain.split('.')[1] + '.' + $domain.split('.')[2]
+
+function catchHTTP
+function requestDocInfo
+function requestLinkInfo
 
 sort and unique errors, links
 
