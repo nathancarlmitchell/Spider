@@ -1,7 +1,7 @@
 # Nathan Carl Mitchell
 # nathancarlmitchell@gmail.com
 # https://github.com/nathancarlmitchell/Spider
-# Verion 2.7.1
+# Verion 2.7.2
 # PowerShell Version 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -285,12 +285,14 @@ foreach ($link in $links) {
 			}
 			if (documentCheck) {
 				if (!(Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) })) {
-					Add-Content -Path $path$docfile -Value $contentlink
+					$content = $contentlink + ',' + $url
+					Add-Content -Path $path$docfile -Value $content
 					'New Document: ' + $contentlink
 					$filecount++
 				}
 			} elseif (!(Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) })) {
-				Add-Content -Path $path$linkfile -Value $contentlink
+				$content = $contentlink + ',' + $url
+				Add-Content -Path $path$linkfile -Value $content
 				#if ($contentlink.Contains($domain))
 				Add-Content -Path $path$tempfile -Value $contentlink
 				'New Link: ' + $contentlink
@@ -300,7 +302,8 @@ foreach ($link in $links) {
 			if ($logOutOfScope) {
 				$link = removeHTTP -link $link
 				if (!(Get-Content $path$scopefile | Where-Object { ($_).ToLower().Contains(($link).ToLower()) })) {
-					Add-Content -Path $path$scopefile -Value $link
+					$content = $link + ',' + $url
+					Add-Content -Path $path$scopefile -Value $content
 					$outofscope++
 					'Out of scope: ' + $link
 				}
@@ -357,7 +360,8 @@ while ($unique) {
 							}
 							if (documentCheck) {
 								if (!(Get-Content $path$docfile | Where-Object { ($_).ToLower().Contains(($contentlink).ToLower()) })) {
-									Add-Content -Path $path$docfile -Value $contentlink
+									$content = $contentlink + ',' + $link
+									Add-Content -Path $path$docfile -Value $content
 									'New Document: ' + $contentlink
 									$filecount++
 								} else {
@@ -367,7 +371,8 @@ while ($unique) {
 								if ($contentlink.Contains($domain)) {
 									Add-Content -Path $path$tempfile -Value $contentlink
 								}
-								Add-Content -Path $path$linkfile -Value $contentlink
+								$content = $contentlink + ',' + $link
+								Add-Content -Path $path$linkfile -Value $content
 								'New Link: ' + $contentlink
 								$webcount++
 							} else {
@@ -377,7 +382,8 @@ while ($unique) {
 							if ($logOutOfScope) {
 								$result = removeHTTP -link $result
 								if (!(Get-Content $path$scopefile | Where-Object { ($_).ToLower().Contains(($result).ToLower()) })) {
-									Add-Content -Path $path$scopefile -Value $result
+									$content = $result + ',' + $link
+									Add-Content -Path $path$scopefile -Value $content
 									$outofscope++
 									'Out of scope: ' + $result
 								}
@@ -436,6 +442,8 @@ if ($requestLinkInfo) {
 	$linksCount = $links.Count
 	$linkCount = 0
 	foreach ($link in $links) {
+        $parent = $link.split(',')[1]
+        $link = $link.split(',')[0]
 		$linkCount++
 		$linkProgress = ($linkCount / $linksCount) * 100
 		$linkProgress = "{0:n2}" -f $linkProgress
@@ -455,26 +463,27 @@ if ($requestLinkInfo) {
 				} catch {
 					$title = ''
 				}
-				$content = $link + ',' + ($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1] + ',' + $request.StatusCode + ',' + $title + ',' `
+				$content = $link + ',' + $parent + ',' + ($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1] + ',' + $request.StatusCode + ',' + $title + ',' `
  					+ $lastModified + ',' + $contentLength + ',' + $request.Headers.'Content-Length'
 				Add-Content -Path $path$linkfile -Value $content
 			} catch {
+                $content = $link + ',' + $parent
 				if ((($_ -split '\n')[0]).Contains("Bad Request")) {
-					$content = $link + ',error,400,' + ($_ -split '\n')[0]
+					$content += ',error,400,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("401") -or (($_ -split '\n')[0]).Contains("Unauthorized")) {
-					$content = $link + ',error,401,' + ($_ -split '\n')[0]
+					$content += ',error,401,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("Forbidden") -or (($_ -split '\n')[0]).Contains("You do not have permission")) {
-					$content = $link + ',error,403,' + ($_ -split '\n')[0]
+					$content += ',error,403,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("404") -or (($_ -split '\n')[0]).Contains("Not Found") -or (($_ -split '\n')[0]).Contains("not found") -or (($_ -split '\n')[0]).Contains("could be found") -or (($_ -split '\n')[0]).Contains("The resource you are looking for has been removed")) {
-					$content = $link + ',error,404,' + ($_ -split '\n')[4]
+					$content += ',error,404,' + ($_ -split '\n')[4]
 				} elseif ((($_ -split '\n')[0]).Contains("Unable to connect to the remote server") -or (($_ -split '\n')[0]).Contains("The operation has timed out.")) {
-					$content = $link + ',error,408,' + ($_ -split '\n')[0]
+					$content += ',error,408,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("Server Error")) {
-					$content = $link + ',error,500,' + ($_ -split '\n')[0]
+					$content += ',error,500,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("Service Unavailable")) {
-					$content = $link + ',error,503,' + ($_ -split '\n')[0]
+					$content += ',error,503,' + ($_ -split '\n')[0]
 				} else {
-					$content = $link + ',error,,' + ($_ -split '\n')[0]
+					$content += ',error,,' + ($_ -split '\n')[0]
 				}
 				Add-Content -Path $path$linkfile -Value $content
 			}
@@ -494,6 +503,8 @@ if ($requestDocInfo) {
 	$linksCount = $links.Count
 	$linkCount = 0
 	foreach ($link in $links) {
+        $parent = $link.split(',')[1]
+        $link = $link.split(',')[0]
 		$linkCount++
 		$linkProgress = ($linkCount / $linksCount) * 100
 		$linkProgress = "{0:n2}" -f $linkProgress
@@ -506,27 +517,28 @@ if ($requestDocInfo) {
 				$lastModified = removeComma -lm $request.Headers.'Last-Modified'
 				$contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
 				$title = formatReadable -contentlink $link
-				$content = $link + ',' + $doctype + ',' + $request.StatusCode + ',' + $title + ',' `
+				$content = $link + ',' + $parent + ',' + $doctype + ',' + $request.StatusCode + ',' + $title + ',' `
  					+ $lastModified + ',' + $contentLength + ',' + $request.Headers.'Content-Length'
 				$request.ParsedHtml.title
 				Add-Content -Path $path$docfile -Value $content
 			} catch {
+                $content = $link + ',' + $parent
 				if ((($_ -split '\n')[0]).Contains("Bad Request")) {
-					$content = $link + ',error,400,' + ($_ -split '\n')[0]
+					$content += ',error,400,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("401") -or (($_ -split '\n')[0]).Contains("Unauthorized")) {
-					$content = $link + ',' + $doctype + ',401,' + ($_ -split '\n')[0]
+					$content += ',error,401,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("Forbidden") -or (($_ -split '\n')[0]).Contains("You do not have permission")) {
-					$content = $link + ',' + $doctype + ',403,' + ($_ -split '\n')[0]
+					$content += ',error,403,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("404") -or (($_ -split '\n')[0]).Contains("Not Found") -or (($_ -split '\n')[0]).Contains("not found") -or (($_ -split '\n')[0]).Contains("could be found") -or (($_ -split '\n')[0]).Contains("The resource you are looking for has been removed")) {
-					$content = $link + ',' + $doctype + ',404,' + ($_ -split '\n')[4]
+					$content += ',error,404,' + ($_ -split '\n')[4]
 				} elseif ((($_ -split '\n')[0]).Contains("Unable to connect to the remote server") -or (($_ -split '\n')[0]).Contains("The operation has timed out.")) {
-					$content = $link + ',' + $doctype + ',408,' + ($_ -split '\n')[0]
+					$content += ',error,408,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("Server Error")) {
-					$content = $link + ',' + $doctype + ',500,' + ($_ -split '\n')[0]
+					$content += ',error,500,' + ($_ -split '\n')[0]
 				} elseif ((($_ -split '\n')[0]).Contains("Service Unavailable")) {
-					$content = $link + ',' + $doctype + ',503,' + ($_ -split '\n')[0]
+					$content += ',error,503,' + ($_ -split '\n')[0]
 				} else {
-					$content = $link + ',' + $doctype + ',error,' + ($_ -split '\n')[0]
+					$content += ',error,,' + ($_ -split '\n')[0]
 				}
 				Add-Content -Path $path$docfile -Value $content
 			}
@@ -552,7 +564,7 @@ if ($outofscope -eq 0) {
 $content = Get-Content -Path $path$linkfile
 $content += Get-Content -Path $path$docfile
 $content = $content | Sort-Object | Get-Unique
-Add-Content -Path $path$reportfile -Value 'URL,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
+Add-Content -Path $path$reportfile -Value 'URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
 Add-Content -Path $path$reportfile -Value $content
 
 $EndDate = Get-Date
