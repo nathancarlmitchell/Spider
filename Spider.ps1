@@ -1,7 +1,7 @@
 # Nathan Carl Mitchell
 # nathancarlmitchell@gmail.com
 # https://github.com/nathancarlmitchell/Spider
-# Verion 2.7.2
+# Verion 2.7.3
 # PowerShell Version 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -36,9 +36,9 @@ if ($args[1]) {
 if ($args[2]) {
 	$maxDepth = $args[2]
 } else {
-	$maxDepth = Read-Host 'Max Depth? (1 - 99) [10]'
+	$maxDepth = Read-Host 'Max Depth? (1 - 99) [15]'
 	if (!$maxDepth) {
-		$maxDepth = 10
+		$maxDepth = 15
 	}
 }
 
@@ -232,6 +232,14 @@ function formatReadable {
 	$contentlink = $contentlink -replace '%27',"'"
 	$contentlink = $contentlink -replace '%28',"("
 	$contentlink = $contentlink -replace '%29',")"
+	$contentlink = $contentlink -replace '&ndash;',"-"
+	$contentlink = $contentlink -replace '&mdash;',"-"
+	$contentlink = $contentlink -replace '&#8211;',"-"
+	$contentlink = $contentlink -replace '&amp;',"&"
+	$contentlink = $contentlink -replace '&#39;',"'"
+	$contentlink = $contentlink -replace '&quot;',"'"
+	$contentlink = $contentlink -replace '&#8217;',"'"
+	$contentlink = $contentlink -replace '&nbsp;'," "
 	return $contentlink
 }
 
@@ -400,12 +408,6 @@ while ($unique) {
 
 Remove-Item -Path $path$tempfile
 
-if ($errors -eq 0) {
-	Remove-Item -Path $path$errorfile
-} else {
-	#Sort and unique
-}
-
 $totalcount = $webcount + $filecount
 
 ''
@@ -460,6 +462,7 @@ if ($requestLinkInfo) {
 					$title = $title -replace ([Environment]::NewLine)
 					$title = $title -replace ('  ')
 					$title = removeComma -lm $title
+					$title = formatReadable -contentlink $title
 				} catch {
 					$title = ''
 				}
@@ -552,6 +555,16 @@ if ($requestDocInfo) {
 	}
 }
 
+#if ($docfile -eq 0) {
+
+#if ($linkfile -eq 0) {
+
+if ($errors -eq 0) {
+	Remove-Item -Path $path$errorfile
+} else {
+	#Sort and unique
+}
+
 if ($outofscope -eq 0) {
 	Remove-Item -Path $path$scopefile
 } else {
@@ -566,6 +579,8 @@ $content += Get-Content -Path $path$docfile
 $content = $content | Sort-Object | Get-Unique
 Add-Content -Path $path$reportfile -Value 'URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
 Add-Content -Path $path$reportfile -Value $content
+
+Add-Content -Path 'C:\Users\nathan.mitchell\Documents\Spider\master.csv' -Value $content
 
 $EndDate = Get-Date
 $TimeSpan = New-TimeSpan -Start $StartDate -End $EndDate
