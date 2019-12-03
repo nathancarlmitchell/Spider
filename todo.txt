@@ -1,18 +1,14 @@
-cleanup extra formatUrl
-
 combine foreach(link) and while(unique)
 
 unify $result, $link
 
-function catchHTTP
 function requestDocInfo
+
 function requestLinkInfo
 
 include out-of-scope in report?
 -kits.pdf
 -.ky.gov
-
-remove newline from errors
 
 depth count not accurate?
 
@@ -25,8 +21,6 @@ Use socrata to convert %% back to ,
 Change $path to ./- and add to report.txt
 remove $path
 - needed for if file exists
-
-add link / result to error log
 
 add docs:
 dtm, ird, itl, eps, ai, 'xlsx?', agi, gci, itl, ird, glb, gdt, cel
