@@ -1,27 +1,25 @@
-source link
--get the link/document info as the scan runs to document source link
+cleanup extra formatUrl
 
-$scope = '.' + $domain.split('.')[1] + '.' + $domain.split('.')[2]
+combine foreach(link) and while(unique)
+
+unify $result, $link
 
 function catchHTTP
 function requestDocInfo
 function requestLinkInfo
 
-sort and unique errors, links
-
 include out-of-scope in report?
 -kits.pdf
+-.ky.gov
+
+remove newline from errors
 
 depth count not accurate?
-
-Seperate doctype from url
 
 check if file open error
 
 change $webcount to $linkcount
 
--combine formatUrl and removeHttp
--remove , from temp
 Use socrata to convert %% back to ,
 
 Change $path to ./- and add to report.txt
