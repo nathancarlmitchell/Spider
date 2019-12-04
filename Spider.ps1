@@ -196,6 +196,10 @@ function formatUrl {
 	$url = $url -replace ',', '%2C'
 	$url = $url -replace ' ', '%20'
 	$url = $url -replace '&amp;', '&'
+
+	if($url.StartsWith('//')) {
+		$url = $url -replace '//'
+	}
     
 	if ($url.EndsWith('#')) {
 		$url = $url -replace '#'
@@ -205,19 +209,26 @@ function formatUrl {
 		$url = $url -replace 'www.'
 	}
 
+	if ($url.Contains('?')) {
+		$url = $url.Split('?')[0]
+	}
+
 	return $url
 }
 
 function formatReadable {
 	param(
-		$content
+		$content,
+		$document
 	)
 
-	if ($content.ToLower().Contains('filename=')) {
-		$content = $content.Split('=')[-1]
+	if($document) {
+		$content = $content.Split('/')[-1]
 	}
 	else {
-		$content = $content.Split('/')[-1]
+		if ($content.ToLower().Contains('filename=')) {
+			$content = $content.Split('=')[-1]
+		}	
 	}
 
 	$content = $content -replace '%2C', ' '
@@ -239,6 +250,25 @@ function formatReadable {
 	$content = $content -replace '&amp;', "&"
 	$content = $content -replace '&#038;', "&"
 	$content = $content -replace '&#8230;', "..."
+
+	$content = $content -replace ([Environment]::NewLine), (' ')
+	$content = $content -replace ("`n"), (' ')
+	$content = $content -replace ("`t")
+	$content = $content.TrimStart(' ')
+	$content = $content.TrimEnd(' ')
+
+	if ($content.Contains('  ')) {
+		$doublespace = $true
+		while ($doublespace) {
+			if ($content.Contains('  ')) {
+				$content = $content -replace ('  '), (' ')
+			}
+			else {
+				$doublespace = $false
+			}
+		}
+	}
+
 	return $content
 }
 
@@ -279,11 +309,11 @@ function catchHTTP {
 
 function removeComma {
 	param(
-		$lm
+		$content
 	)
 
-	$lm = $lm -replace ',', '.'
-	return $lm
+	$content = $content -replace ',', '.'
+	return $content
 }
 
 function DisplayInBytes () {
@@ -376,10 +406,8 @@ while ($unique) {
 					$request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
 				}
 				catch {
-					$errorDetails = removeComma -lm $_.ErrorDetails 
-					$errorDetails = $errorDetails -replace ([Environment]::NewLine), (' ')
-					$errorDetails = $errorDetails -replace ("`n"), (' ')
-					$errorDetails = $errorDetails -replace ("`t"), (' ')
+					$errorDetails = removeComma -content $_.ErrorDetails 
+					$errorDetails = formatReadable -content $errorDetails -document $false
 					$errormessage = $link + ',' + $errorDetails
 					Add-Content -Path $path$errorfile -Value $errormessage
 					$errorcount++
@@ -485,19 +513,13 @@ if ($webcount -eq 0) { Remove-Item -Path $path$linkfile } else {
 				try {
 					$link = formatUrl -url $link
 					$request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
-					$lastModified = removeComma -lm $request.Headers.'Last-Modified'
+					$lastModified = removeComma -content $request.Headers.'Last-Modified'
 					$contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
 					try {
 						$title = $request.Content.Split('<') | Where-Object { $_.ToLower().Contains('title>') }
 						$title = $title.Split('>')[1]
-						$title = $title -replace ([Environment]::NewLine), (' ')
-						$title = $title -replace ("`n"), (' ')
-						$title = $title -replace ("`t")
-						$title = $title -replace ('  '), (' ')
-						$title = $title.TrimStart(' ')
-						$title = $title.TrimEnd(' ')
-						$title = removeComma -lm $title
-						$title = formatReadable -content $title
+						$title = removeComma -content $title
+						$title = formatReadable -content $title -document $false
 					}
 					catch {
 						$title = ''
@@ -539,9 +561,9 @@ if ($documentcount -eq 0) { Remove-Item -Path $path$docfile } else {
 				try {
 					$link = formatUrl -url $link
 					$request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing -Method Head
-					$lastModified = removeComma -lm $request.Headers.'Last-Modified'
+					$lastModified = removeComma -content $request.Headers.'Last-Modified'
 					$contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
-					$title = formatReadable -content $link
+					$title = formatReadable -content $link -document $true
 					$content = $link + ',' + $parent + ',' + $doctype + ',' + $request.StatusCode + ',' + $title + ',' `
 						+ $lastModified + ',' + $contentLength + ',' + $request.Headers.'Content-Length'
 					$request.ParsedHtml.title
