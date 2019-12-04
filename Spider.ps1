@@ -106,7 +106,7 @@ else {
 
 $request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
 $domain = $request.BaseResponse.ResponseUri.Host
-$path = 'C:\Users\Owner\Downloads\Spider-master\Spider-master\' + $domain + '\'
+$path = 'C:\Users\nathan.mitchell\Documents\Spider\' + $domain + '\'
 $linkfile = $domain + '.links.csv'
 $docfile = $domain + '.docs.csv'
 $scopefile = $domain + '.out-of-scope.csv'
@@ -222,7 +222,15 @@ function formatReadable {
 
 	$content = $content -replace '%2C', ' '
 	$content = $content -replace '%20', ' '
+	$content = $content -replace '&nbsp;', " "
 	$content = $content -replace '%27', "'"
+	$content = $content -replace '&#39;', "'"
+	$content = $content -replace '&#039;', "'"
+	$content = $content -replace '&quot;', "'"
+	$content = $content -replace '&#8216;', "'"
+	$content = $content -replace '&#8217;', "'"
+	$content = $content -replace '&#8220;', "'"
+	$content = $content -replace '&#8221;', "'"
 	$content = $content -replace '%28', "("
 	$content = $content -replace '%29', ")"
 	$content = $content -replace '&ndash;', "-"
@@ -230,10 +238,7 @@ function formatReadable {
 	$content = $content -replace '&#8211;', "-"
 	$content = $content -replace '&amp;', "&"
 	$content = $content -replace '&#038;', "&"
-	$content = $content -replace '&#39;', "'"
-	$content = $content -replace '&quot;', "'"
-	$content = $content -replace '&#8217;', "'"
-	$content = $content -replace '&nbsp;', " "
+	$content = $content -replace '&#8230;', "..."
 	return $content
 }
 
@@ -587,7 +592,7 @@ $content = $content | Sort-Object | Get-Unique
 Add-Content -Path $path$reportfile -Value 'URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
 Add-Content -Path $path$reportfile -Value $content
 
-Add-Content -Path 'C:\Users\Owner\Downloads\Spider-master\Spider-master\master.csv' -Value $content
+Add-Content -Path 'C:\Users\nathan.mitchell\Documents\Spider\master.csv' -Value $content
 
 $EndDate = Get-Date
 $TimeSpan = New-TimeSpan -Start $StartDate -End $EndDate
