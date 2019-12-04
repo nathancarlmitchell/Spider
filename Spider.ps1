@@ -106,7 +106,7 @@ else {
 
 $request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
 $domain = $request.BaseResponse.ResponseUri.Host
-$path = 'C:\Users\nathan.mitchell\Documents\Spider\' + $domain + '\'
+$path = 'C:\Users\Owner\Downloads\Spider-master\Spider-master\' + $domain + '\'
 $linkfile = $domain + '.links.csv'
 $docfile = $domain + '.docs.csv'
 $scopefile = $domain + '.out-of-scope.csv'
@@ -165,11 +165,11 @@ function documentCheck {
 	$doclink = ($link.Split('.')[-1]).ToLower()
 	$doctypes = 'pdf', 'xls', 'xlsx', 'xlsm', 'xlt', 'xltm', 'doc', 'docm', 'docx', 'dot', 'dotx', 'ppt', 'pptm', 'pptx', 'ppsx', `
 		'zip', 'csv', 'kmz', 'shp', 'cat', 'dat', 'dgn', 'alg', 'rtf', 'pub', `
-		'mp3', 'mp4', 'avi', 'mov', 'wav', 'wmv', 'jpg', 'png', 'gif', 'tif'
+		'mp3', 'mp4', 'avi', 'mov', 'wav', 'wmv', 'wma', 'jpg', 'png', 'gif', 'tif'
 	if ($doctypes.Contains($doclink)) {
 		$document = $true
 	}
- else {
+	else {
 		$document = $false
 	}
 	return $document
@@ -216,7 +216,7 @@ function formatReadable {
 	if ($content.ToLower().Contains('filename=')) {
 		$content = $content.Split('=')[-1]
 	}
- else {
+	else {
 		$content = $content.Split('/')[-1]
 	}
 
@@ -587,7 +587,7 @@ $content = $content | Sort-Object | Get-Unique
 Add-Content -Path $path$reportfile -Value 'URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
 Add-Content -Path $path$reportfile -Value $content
 
-Add-Content -Path 'C:\Users\nathan.mitchell\Documents\Spider\master.csv' -Value $content
+Add-Content -Path 'C:\Users\Owner\Downloads\Spider-master\Spider-master\master.csv' -Value $content
 
 $EndDate = Get-Date
 $TimeSpan = New-TimeSpan -Start $StartDate -End $EndDate
