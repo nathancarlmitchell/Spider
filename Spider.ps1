@@ -104,68 +104,16 @@ else {
 	}
 }
 
-$request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
-$domain = $request.BaseResponse.ResponseUri.Host
-$path = 'C:\Users\nathan.mitchell\Documents\Spider\' + $domain + '\'
-$linkfile = $domain + '.links.csv'
-$docfile = $domain + '.docs.csv'
-$scopefile = $domain + '.out-of-scope.csv'
-$reportfile = $domain + '.report.csv'
-$tempfile = $domain + '.temp.txt'
-$errorfile = $domain + '.errors.csv'
-$logfile = $domain + '.log.txt'
-$outofscope = 0
-$duplicatecount = 0
-$webcount = 0
-$documentcount = 0
-$totalcount = 0
-$errorcount = 0
-$depth = 1
-$unique = $true
-$StartDate = Get-Date
-
-if (![System.IO.File]::Exists($path)) {
-	New-Item -ItemType Directory -Force -Path $path
-}
-if (![System.IO.File]::Exists($path + $linkfile)) {
-	New-Item -Path $path -Name $linkfile
-}
-if (![System.IO.File]::Exists($path + $docfile)) {
-	New-Item -Path $path -Name $docfile
-}
-if (![System.IO.File]::Exists($path + $scopefile)) {
-	New-Item -Path $path -Name $scopefile
-}
-if (![System.IO.File]::Exists($path + $reportfile)) {
-	New-Item -Path $path -Name $reportfile
-}
-if (![System.IO.File]::Exists($path + $tempfile)) {
-	New-Item -Path $path -Name $tempfile
-}
-if (![System.IO.File]::Exists($path + $errorfile)) {
-	New-Item -Path $path -Name $errorfile
-}
-if (![System.IO.File]::Exists($path + $logfile)) {
-	New-Item -Path $path -Name $logfile
-}
-
-Clear-Content -Path $path$linkfile
-Clear-Content -Path $path$docfile
-Clear-Content -Path $path$scopefile
-Clear-Content -Path $path$reportfile
-Clear-Content -Path $path$tempfile
-Clear-Content -Path $path$errorfile
-Clear-Content -Path $path$logfile
-
 function documentCheck {
 	param(
 		$link
 	)
 
 	$doclink = ($link.Split('.')[-1]).ToLower()
+	$doclink = $doclink.Substring(0, [Math]::Min($doclink.Length, 3))
 	$doctypes = 'pdf', 'xls', 'xlsx', 'xlsm', 'xlt', 'xltm', 'doc', 'docm', 'docx', 'dot', 'dotx', 'ppt', 'pptm', 'pptx', 'ppsx', `
-		'zip', 'csv', 'kmz', 'shp', 'cat', 'dat', 'dgn', 'alg', 'rtf', 'pub', `
-		'mp3', 'mp4', 'avi', 'mov', 'wav', 'wmv', 'wma', 'jpg', 'png', 'gif', 'tif'
+		'txt', 'zip', 'rar', 'csv', 'kmz', 'shp', 'cat', 'dat', 'dgn', 'alg', 'prj', 'rtf', 'pub', 'xml', 'gpx', `
+		'mp3', 'mp4', 'avi', 'mov', 'wav', 'wmv', 'wma', 'jpg', 'jpeg', 'png', 'gif', 'tif', 'bmp'
 	if ($doctypes.Contains($doclink)) {
 		$document = $true
 	}
@@ -330,6 +278,59 @@ function DisplayInBytes () {
 
 	"{0:F1} {1}" -f $num, $suffix[$index]
 }
+
+$request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
+$domain = formatUrl -url $request.BaseResponse.ResponseUri.Host
+$path = 'C:\Users\nathan.mitchell\Documents\Spider\' + $domain + '\'
+$linkfile = $domain + '.links.csv'
+$docfile = $domain + '.docs.csv'
+$scopefile = $domain + '.out-of-scope.csv'
+$reportfile = $domain + '.report.csv'
+$tempfile = $domain + '.temp.txt'
+$errorfile = $domain + '.errors.csv'
+$logfile = $domain + '.log.txt'
+$outofscope = 0
+$duplicatecount = 0
+$webcount = 0
+$documentcount = 0
+$totalcount = 0
+$errorcount = 0
+$depth = 1
+$unique = $true
+$StartDate = Get-Date
+
+if (![System.IO.File]::Exists($path)) {
+	New-Item -ItemType Directory -Force -Path $path
+}
+if (![System.IO.File]::Exists($path + $linkfile)) {
+	New-Item -Path $path -Name $linkfile
+}
+if (![System.IO.File]::Exists($path + $docfile)) {
+	New-Item -Path $path -Name $docfile
+}
+if (![System.IO.File]::Exists($path + $scopefile)) {
+	New-Item -Path $path -Name $scopefile
+}
+if (![System.IO.File]::Exists($path + $reportfile)) {
+	New-Item -Path $path -Name $reportfile
+}
+if (![System.IO.File]::Exists($path + $tempfile)) {
+	New-Item -Path $path -Name $tempfile
+}
+if (![System.IO.File]::Exists($path + $errorfile)) {
+	New-Item -Path $path -Name $errorfile
+}
+if (![System.IO.File]::Exists($path + $logfile)) {
+	New-Item -Path $path -Name $logfile
+}
+
+Clear-Content -Path $path$linkfile
+Clear-Content -Path $path$docfile
+Clear-Content -Path $path$scopefile
+Clear-Content -Path $path$reportfile
+Clear-Content -Path $path$tempfile
+Clear-Content -Path $path$errorfile
+Clear-Content -Path $path$logfile
 
 $link = formatUrl -url $request.BaseResponse.ResponseUri.AbsoluteUri
 $content = $link + ',' + $domain
