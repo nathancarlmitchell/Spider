@@ -281,7 +281,7 @@ function DisplayInBytes () {
 
 $request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
 $domain = formatUrl -url $request.BaseResponse.ResponseUri.Host
-$path = 'C:\Users\nathan.mitchell\Documents\Spider\' + $domain + '\'
+$path = $PSScriptRoot + '\' + $domain + '\'
 $linkfile = $domain + '.links.csv'
 $docfile = $domain + '.docs.csv'
 $scopefile = $domain + '.out-of-scope.csv'
