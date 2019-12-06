@@ -1,10 +1,10 @@
 combine foreach(link) and while(unique)
 
-unify $result, $link
-
 function requestDocInfo
 
 function requestLinkInfo
+
+create master documents
 
 include out-of-scope in report?
 -kits.pdf
@@ -12,15 +12,7 @@ include out-of-scope in report?
 
 depth count not accurate?
 
-check if file open error
-
 change $webcount to $linkcount
-
-Use socrata to convert %% back to ,
-
-Change $path to ./- and add to report.txt
-remove $path
-- needed for if file exists
 
 add docs:
 dtm, ird, itl, eps, ai, 'xlsx?', agi, gci, itl, ird, glb, gdt, cel
