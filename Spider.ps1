@@ -104,7 +104,7 @@ else {
 	}
 }
 
-function documentCheck {
+function Confirm-Document {
 	param(
 		$link
 	)
@@ -123,7 +123,7 @@ function documentCheck {
 	return $document
 }
 
-function documentType {
+function Get-DocumentType {
 	param(
 		$doclink
 	)
@@ -132,7 +132,7 @@ function documentType {
 	return $doctype
 }
 
-function formatUrl {
+function Format-Url {
 	param(
 		$url
 	)
@@ -164,7 +164,7 @@ function formatUrl {
 	return $url
 }
 
-function formatReadable {
+function Format-Readable {
 	param(
 		$content,
 		$document
@@ -220,7 +220,7 @@ function formatReadable {
 	return $content
 }
 
-function Get-HTTPError {
+function Get-HttpError {
     param (
         $e,
         $link,
@@ -252,87 +252,42 @@ function Get-HTTPError {
     else {
         $content += ',error,,' + ($e -split '\n')[0]
     }
-    Add-Content -Path $path$docfile -Value $content
+    Add-Content -Path $path$fileDocument -Value $content
 }
 
 function Remove-Comma {
 	param(
-		$content
+		$Content
 	)
 
-	$content = $content -replace ',', '.'
-	return $content
+	$Content = $Content -replace ',', '.'
+	return $Content
 }
 
-function DisplayInBytes {
+function Get-ByteSize {
 	param(
-		$num
+		$size
 	)
 
-	if($num) {
+	if($size) {
 		$suffix = "B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"
 		$index = 0
-		while ($num -gt 1kb) {
-			$num = $num / 1kb
+		while ($size -gt 1kb) {
+			$size = $size / 1kb
 			$index++
 		}
 
-		"{0:F1} {1}" -f $num, $suffix[$index]
+		"{0:F1} {1}" -f $size, $suffix[$index]
 	}
 }
 
-$request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
-$domain = formatUrl -url $request.BaseResponse.ResponseUri.Host
-$path = $PSScriptRoot + '\' + $domain + '\'
-$linkfile = $domain + '.links.csv'
-$docfile = $domain + '.docs.csv'
-$scopefile = $domain + '.out-of-scope.csv'
-$reportfile = $domain + '.report.csv'
-$tempfile = $domain + '.temp.txt'
-$errorfile = $domain + '.errors.csv'
-$logfile = $domain + '.log.txt'
-$outofscope = 0
-$duplicatecount = 0
-$webcount = 0
-$documentcount = 0
-$totalcount = 0
-$errorcount = 0
-$depth = 1
-$unique = $true
-$StartDate = Get-Date
-
-if (![System.IO.File]::Exists($path)) {
-	New-Item -ItemType Directory -Force -Path $path
-}
-if (![System.IO.File]::Exists($path + $linkfile)) {
-	New-Item -Path $path -Name $linkfile
-}
-if (![System.IO.File]::Exists($path + $docfile)) {
-	New-Item -Path $path -Name $docfile
-}
-if (![System.IO.File]::Exists($path + $scopefile)) {
-	New-Item -Path $path -Name $scopefile
-}
-if (![System.IO.File]::Exists($path + $reportfile)) {
-	New-Item -Path $path -Name $reportfile
-}
-if (![System.IO.File]::Exists($path + $tempfile)) {
-	New-Item -Path $path -Name $tempfile
-}
-if (![System.IO.File]::Exists($path + $errorfile)) {
-	New-Item -Path $path -Name $errorfile
-}
-if (![System.IO.File]::Exists($path + $logfile)) {
-	New-Item -Path $path -Name $logfile
-}
-
-function Test-FileLocked {
+function Test-FileLock {
 	param (
 		[Parameter(Mandatory=$true)]
 		[String[]]
 		$file
 	)
-
+	# Returns true if the file is locked
 	$oFile = New-Object System.IO.FileInfo $file
 	if ((Test-Path -Path $file) -eq $false) {
 		return $false
@@ -354,49 +309,94 @@ function Edit-Content {
 	param(
 		[Parameter(Mandatory=$true)]
 		[String[]]
-		$file,
+		$File,
 
 		[Parameter(Mandatory=$true)]
 		[String[]]
-		$mode,
+		$Mode,
 
 		[Parameter(Mandatory=$false)]
 		[String[]]
-		$content
+		$Content
 	)
 	
-	$complete = $false
-	while(!$complete) {
-		if (!(Test-FileLocked -file $file)){
-			if($mode -eq 'add') {
-				Add-Content -Path $file -Value $content
+	$Complete = $false
+	while(!$Complete) {
+		if (!(Test-FileLock -File $File)){
+			if($Mode -eq 'add') {
+				Add-Content -Path $File -Value $Content
 			}
-			elseif($mode -eq 'clear') {
-				Clear-Content -Path $file
+			elseif($Mode -eq 'clear') {
+				Clear-Content -Path $File
 			}
-			$complete = $true
+			$Complete = $true
 		}
 		else {
 			''
-			$file + ' is locked.'
+			$File + ' is locked.'
 			'Close the file to continue.'
-			pause
+			Pause
 		}
 	}
 }
 
-Edit-Content -file $path$linkfile -mode 'clear'
-Edit-Content -file $path$docfile -mode 'clear'
-Edit-Content -file $path$scopefile -mode 'clear'
-Edit-Content -file $path$reportfile -mode 'clear'
-Edit-Content -file $path$tempfile -mode 'clear'
-Edit-Content -file $path$errorfile -mode 'clear'
-Edit-Content -file $path$logfile -mode 'clear'
+$request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
+$domain = Format-Url -url $request.BaseResponse.ResponseUri.Host
+$path = $PSScriptRoot + '\' + $domain + '\'
+$fileLink = $domain + '.links.csv'
+$fileDocument = $domain + '.docs.csv'
+$fileScope = $domain + '.out-of-scope.csv'
+$fileReport = $domain + '.report.csv'
+$fileUnique = $domain + '.temp.txt'
+$fileError = $domain + '.errors.csv'
+$fileLog = $domain + '.log.txt'
+$countScope = 0
+$countDuplicate = 0
+$countLink = 0
+$countDocument = 0
+$countTotal = 0
+$countError = 0
+$countDepth = 1
+$unique = $true
+$StartDate = Get-Date
 
-$link = formatUrl -url $request.BaseResponse.ResponseUri.AbsoluteUri
+if (![System.IO.File]::Exists($path)) {
+	New-Item -ItemType Directory -Force -Path $path
+}
+if (![System.IO.File]::Exists($path + $fileLink)) {
+	New-Item -Path $path -Name $fileLink
+}
+if (![System.IO.File]::Exists($path + $fileDocument)) {
+	New-Item -Path $path -Name $fileDocument
+}
+if (![System.IO.File]::Exists($path + $fileScope)) {
+	New-Item -Path $path -Name $fileScope
+}
+if (![System.IO.File]::Exists($path + $fileReport)) {
+	New-Item -Path $path -Name $fileReport
+}
+if (![System.IO.File]::Exists($path + $fileUnique)) {
+	New-Item -Path $path -Name $fileUnique
+}
+if (![System.IO.File]::Exists($path + $fileError)) {
+	New-Item -Path $path -Name $fileError
+}
+if (![System.IO.File]::Exists($path + $fileLog)) {
+	New-Item -Path $path -Name $fileLog
+}
+
+Edit-Content -File $path$fileLink -Mode 'clear'
+Edit-Content -File $path$fileDocument -Mode 'clear'
+Edit-Content -File $path$fileScope -Mode 'clear'
+Edit-Content -File $path$fileReport -Mode 'clear'
+Edit-Content -File $path$fileUnique -Mode 'clear'
+Edit-Content -File $path$fileError -Mode 'clear'
+Edit-Content -File $path$fileLog -Mode 'clear'
+
+$link = Format-Url -url $request.BaseResponse.ResponseUri.AbsoluteUri
 $content = $link + ',' + $domain
-Edit-Content -file $path$linkfile -mode 'add' -content $content
-$webcount++
+Edit-Content -File $path$fileLink -Mode 'add' -Content $content
+$countLink++
 
 #$scope = '.' + $domain.split('.')[1] + '.' + $domain.split('.')[2]
 $links = $request.Links.href
@@ -408,38 +408,38 @@ foreach ($link in $links) {
 	$linkCount++
 	$linkProgress = ($linkCount / $linksCount) * 100
 	$linkProgress = "{0:n2}" -f $linkProgress
-	Write-Progress -Activity "Search in Progress: $domain" -Status "Complete: $linkProgress% Depth: $depth" -PercentComplete $linkProgress
+	Write-Progress -Activity "Search in Progress: $domain" -Status "Complete: $linkProgress% Depth: $countDepth" -PercentComplete $linkProgress
 	if ($link) {
-		$link = formatUrl -url $link
+		$link = Format-Url -url $link
 		#or $link.Contains($scope)
 		if ($link.StartsWith('/') -or $link.ToLower().Split('/')[0].StartsWith($domain)) {
 			if ($link.StartsWith('/')) {
 				$link = $domain + $link
 			}
-			if (documentCheck -link $link) {
-				if (!(Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($link).ToLower()) })) {
+			if (Confirm-Document -link $link) {
+				if (!(Get-Content $path$fileLink | Where-Object { ($_).ToLower().Contains(($link).ToLower()) })) {
 					$content = $link + ',' + $url
-					Edit-Content -file $path$docfile -mode 'add' -content $content
+					Edit-Content -File $path$fileDocument -Mode 'add' -Content $content
 					'New Document: ' + $link
-					$documentcount++
+					$countDocument++
 				}
 			}
-			elseif (!(Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($link).ToLower()) })) {
+			elseif (!(Get-Content $path$fileLink | Where-Object { ($_).ToLower().Contains(($link).ToLower()) })) {
 				if ($link.ToLower().Contains($domain)) {
-					Edit-Content -file $path$tempfile -mode 'add' -content $link
+					Edit-Content -File $path$fileUnique -Mode 'add' -Content $link
 				}
 				$content = $link + ',' + $url
-				Edit-Content -file $path$linkfile -mode 'add' -content $content
+				Edit-Content -File $path$fileLink -Mode 'add' -Content $content
 				'New Link: ' + $link
-				$webcount++
+				$countLink++
 			}
 		}
 		else {
 			if ($logOutOfScope) {
-				if (!(Get-Content $path$scopefile | Where-Object { ($_).ToLower().Contains(($link).ToLower()) })) {
+				if (!(Get-Content $path$fileScope | Where-Object { ($_).ToLower().Contains(($link).ToLower()) })) {
 					$content = $link + ',' + $url
-					Edit-Content -file $path$scopefile -mode 'add' -content $content
-					$outofscope++
+					Edit-Content -File $path$fileScope -Mode 'add' -Content $content
+					$countScope++
 					'Out of scope: ' + $link
 				}
 			}
@@ -448,14 +448,14 @@ foreach ($link in $links) {
 }
 
 while ($unique) {
-	if ($null -eq (Get-Content -Path $path$tempfile)) {
+	if ($null -eq (Get-Content -Path $path$fileUnique)) {
 		$unique = $false
 	}
-	if ($depth -lt $maxDepth) {
-		$depth++
-		$links = Get-Content $path$tempfile
+	if ($countDepth -lt $maxDepth) {
+		$countDepth++
+		$links = Get-Content $path$fileUnique
 		$links = $links | Sort-Object | Get-Unique
-		Edit-Content -file $path$tempfile -mode 'clear'
+		Edit-Content -File $path$fileUnique -Mode 'clear'
 		$linksCount = $links.Count
 		$linkCount = 0
 		foreach ($link in $links) {
@@ -463,55 +463,55 @@ while ($unique) {
 				$linkCount++
 				$linkProgress = ($linkCount / $linksCount) * 100
 				$linkProgress = "{0:n2}" -f $linkProgress
-				Write-Progress -Activity "Search in Progress: $link" -Status "Complete: $linkProgress% Depth: $depth" -PercentComplete $linkProgress -CurrentOperation ' '
+				Write-Progress -Activity "Search in Progress: $link" -Status "Complete: $linkProgress% Depth: $countDepth" -PercentComplete $linkProgress -CurrentOperation ' '
 				try {
 					$request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
 				}
 				catch {
-					$errorDetails = Remove-Comma -content $_.ErrorDetails 
-					$errorDetails = formatReadable -content $errorDetails -document $false
-					$errormessage = $link + ',' + $errorDetails
-					Edit-Content -file $path$errorfile -mode 'add' -content $errormessage
-					$errorcount++
+					$errorDetails = Remove-Comma -Content $_.ErrorDetails 
+					$errorDetails = Format-Readable -Content $errorDetails -document $false
+					$errorMessage = $link + ',' + $errorDetails
+					Edit-Content -File $path$fileError -Mode 'add' -Content $errorMessage
+					$countError++
 				}
 				$results = $request.Links.href
 				foreach ($result in $results) {
 					if ($result) {
-						$result = formatUrl -url $result
+						$result = Format-Url -url $result
 						if ($result.StartsWith('/') -or $result.ToLower().Split('/')[0].StartsWith($domain)) {
 							if ($result.StartsWith('/')) {
 								$result = $domain + $result
 							}
-							if (documentCheck -link $result) {
-								if (!(Get-Content $path$docfile | Where-Object { ($_).ToLower().Contains(($result).ToLower()) })) {
+							if (Confirm-Document -link $result) {
+								if (!(Get-Content $path$fileDocument | Where-Object { ($_).ToLower().Contains(($result).ToLower()) })) {
 									$content = $result + ',' + $link
-									Edit-Content -file $path$docfile -mode 'add' -content $content
+									Edit-Content -File $path$fileDocument -Mode 'add' -Content $content
 									'New Document: ' + $result
-									$documentcount++
+									$countDocument++
 								}
 								else {
-									$duplicatecount++
+									$countDuplicate++
 								}
 							}
-							elseif (!(Get-Content $path$linkfile | Where-Object { ($_).ToLower().Contains(($result).ToLower()) })) {
+							elseif (!(Get-Content $path$fileLink | Where-Object { ($_).ToLower().Contains(($result).ToLower()) })) {
 								if ($result.ToLower().Contains($domain)) {
-									Edit-Content -file $path$tempfile -mode 'add' -content $result
+									Edit-Content -File $path$fileUnique -Mode 'add' -Content $result
 								}
 								$content = $result + ',' + $link
-								Edit-Content -file $path$linkfile -mode 'add' -content $content
+								Edit-Content -File $path$fileLink -Mode 'add' -Content $content
 								'New Link: ' + $result
-								$webcount++
+								$countLink++
 							}
 							else {
-								$duplicatecount++
+								$countDuplicate++
 							}
 						}
 						else {
 							if ($logOutOfScope) {
-								if (!(Get-Content $path$scopefile | Where-Object { ($_).ToLower().Contains(($result).ToLower()) })) {
+								if (!(Get-Content $path$fileScope | Where-Object { ($_).ToLower().Contains(($result).ToLower()) })) {
 									$content = $result + ',' + $link
-									Edit-Content -file $path$scopefile -mode 'add' -content $content
-									$outofscope++
+									Edit-Content -File $path$fileScope -Mode 'add' -Content $content
+									$countScope++
 									'Out of scope: ' + $result
 								}
 							}
@@ -526,42 +526,42 @@ while ($unique) {
 	}
 }
 
-Remove-Item -Path $path$tempfile
+Remove-Item -Path $path$fileUnique
 
-$totalcount = $webcount + $documentcount
+$countTotal = $countLink + $countDocument
 
 ''
-'Duplicates: ' + $duplicatecount
-'Web links: ' + $webcount
-'Document links: ' + $documentcount
-'Total links: ' + $totalcount
+'Duplicates: ' + $countDuplicate
+'Web links: ' + $countLink
+'Document links: ' + $countDocument
+'Total links: ' + $countTotal
 if ($logOutOfScope) {
-	'Out of scope links: ' + $outofscope
+	'Out of scope links: ' + $countScope
 }
-'Errors: ' + $errorcount
-'Depth: ' + $depth
+'Errors: ' + $countError
+'Depth: ' + $countDepth
 
-$value = 'Duplicates: ' + $duplicatecount
-Add-Content -Path $path$logfile -Value $value
-$value = 'Web links: ' + $webcount
-Add-Content -Path $path$logfile -Value $value
-$value = 'Document links: ' + $documentcount
-Add-Content -Path $path$logfile -Value $value
-$value = 'Total links: ' + $totalcount
-Add-Content -Path $path$logfile -Value $value
+$value = 'Duplicates: ' + $countDuplicate
+Add-Content -Path $path$fileLog -Value $value
+$value = 'Web links: ' + $countLink
+Add-Content -Path $path$fileLog -Value $value
+$value = 'Document links: ' + $countDocument
+Add-Content -Path $path$fileLog -Value $value
+$value = 'Total links: ' + $countTotal
+Add-Content -Path $path$fileLog -Value $value
 if ($logOutOfScope) {
-	$value = 'Out of scope links: ' + $outofscope
-	Add-Content -Path $path$logfile -Value $value
+	$value = 'Out of scope links: ' + $countScope
+	Add-Content -Path $path$fileLog -Value $value
 }
-$value = 'Errors: ' + $errorcount
-Add-Content -Path $path$logfile -Value $value
-$value = 'Depth: ' + $depth
-Add-Content -Path $path$logfile -Value $value
+$value = 'Errors: ' + $countError
+Add-Content -Path $path$fileLog -Value $value
+$value = 'Depth: ' + $countDepth
+Add-Content -Path $path$fileLog -Value $value
 
-if ($webcount -eq 0) { Remove-Item -Path $path$linkfile } else { 
+if ($countLink -eq 0) { Remove-Item -Path $path$fileLink } else { 
 	if ($requestLinkInfo) {
-		$links = Get-Content -Path $path$linkfile | Sort-Object | Get-Unique
-		Edit-Content -file $path$linkfile -mode 'clear'
+		$links = Get-Content -Path $path$fileLink | Sort-Object | Get-Unique
+		Edit-Content -File $path$fileLink -Mode 'clear'
 		$linksCount = $links.Count
 		$linkCount = 0
 		foreach ($link in $links) {
@@ -573,42 +573,42 @@ if ($webcount -eq 0) { Remove-Item -Path $path$linkfile } else {
 			Write-Progress -Activity "Requesting Link Information: $link" -Status "Complete: $linkProgress" -PercentComplete $linkProgress -CurrentOperation ' '
 			if ($link) {
 				try {
-					$link = formatUrl -url $link
+					$link = Format-Url -url $link
 					$request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
-					$lastModified = Remove-Comma -content $request.Headers.'Last-Modified'
-					$contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
+					$lastModified = Remove-Comma -Content $request.Headers.'Last-Modified'
+					$contentLength = Get-ByteSize -Size $request.Headers.'Content-Length'
 					try {
 						$title = $request.Content.Split('<') | Where-Object { $_.ToLower().Contains('title>') }
 						$title = $title.Split('>')[1]
-						$title = Remove-Comma -content $title
-						$title = formatReadable -content $title -document $false
+						$title = Remove-Comma -Content $title
+						$title = Format-Readable -Content $title -document $false
 					}
 					catch {
 						$title = ''
 					}
 					$content = $link + ',' + $parent + ',' + ($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1] + ',' + $request.StatusCode + ',' + $title + ',' `
 						+ $lastModified + ',' + $contentLength + ',' + $request.Headers.'Content-Length'
-						Edit-Content -file $path$linkfile -mode 'add' -content $content
+						Edit-Content -File $path$fileLink -Mode 'add' -Content $content
 				}
 				catch {
-					Get-HTTPError -e $_ -link $link -parent $parent
+					Get-HttpError -e $_ -link $link -parent $parent
 				}
 			}
 		}
 	}
 	else {
-		$content = Get-Content -Path $path$linkfile | Sort-Object | Get-Unique
-		Edit-Content -file $path$linkfile -mode 'clear'
+		$content = Get-Content -Path $path$fileLink | Sort-Object | Get-Unique
+		Edit-Content -File $path$fileLink -Mode 'clear'
 		foreach ($c in $content) {
-			Add-Content -Path $path$linkfile -Value $c
+			Edit-Content -File $path$fileLink -Mode 'add' -Content $c
 		}
 	}
 }
 
-if ($documentcount -eq 0) { Remove-Item -Path $path$docfile } else { 
+if ($countDocument -eq 0) { Remove-Item -Path $path$fileDocument } else { 
 	if ($requestDocInfo) {
-		$links = Get-Content -Path $path$docfile | Sort-Object | Get-Unique
-		Edit-Content -file $path$docfile -mode 'clear'
+		$links = Get-Content -Path $path$fileDocument | Sort-Object | Get-Unique
+		Edit-Content -File $path$fileDocument -Mode 'clear'
 		$linksCount = $links.Count
 		$linkCount = 0
 		foreach ($link in $links) {
@@ -619,69 +619,69 @@ if ($documentcount -eq 0) { Remove-Item -Path $path$docfile } else {
 			$linkProgress = "{0:n2}" -f $linkProgress
 			Write-Progress -Activity "Requesting Document Information: $link" -Status "Complete: $linkProgress" -PercentComplete $linkProgress -CurrentOperation ' '
 			if ($link) {
-				$doctype = documentType -doclink $link
+				$doctype = Get-DocumentType -doclink $link
 				try {
-					$link = formatUrl -url $link
+					$link = Format-Url -url $link
 					$request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing -Method Head
-					$lastModified = Remove-Comma -content $request.Headers.'Last-Modified'
-					$contentLength = DisplayInBytes -num $request.Headers.'Content-Length'
-					$title = formatReadable -content $link -document $true
+					$lastModified = Remove-Comma -Content $request.Headers.'Last-Modified'
+					$contentLength = Get-ByteSize -Size $request.Headers.'Content-Length'
+					$title = Format-Readable -Content $link -document $true
 					$content = $link + ',' + $parent + ',' + $doctype + ',' + $request.StatusCode + ',' + $title + ',' `
 						+ $lastModified + ',' + $contentLength + ',' + $request.Headers.'Content-Length'
 					$request.ParsedHtml.title
-					Add-Content -Path $path$docfile -Value $content
+					Add-Content -Path $path$fileDocument -Value $content
 				}
 				catch {
-					Get-HTTPError -e $_ -link $link -parent $parent
+					Get-HttpError -e $_ -link $link -parent $parent
 				}
 			}
 		}
 	}
 	else {
-		$content = Get-Content -Path $path$docfile | Sort-Object | Get-Unique
-		Edit-Content -file $path$docfile -mode 'clear'
+		$content = Get-Content -Path $path$fileDocument | Sort-Object | Get-Unique
+		Edit-Content -File $path$fileDocument -Mode 'clear'
 		foreach ($c in $content) {
-			Add-Content -Path $path$docfile -Value $c
+			Edit-Content -File $path$fileDocument -Mode 'add' -Content $c
 		}
 	}
 }
 
-if ($errorcount -eq 0) {
-	Remove-Item -Path $path$errorfile
+if ($countError -eq 0) {
+	Remove-Item -Path $path$fileError
 }
 else {
-	$content = Get-Content -Path $path$errorfile | Sort-Object | Get-Unique
-	Edit-Content -file $path$errorfile -mode 'clear'
-	Edit-Content -file $path$errorfile -mode 'add' -content 'URL,Error'
+	$content = Get-Content -Path $path$fileError | Sort-Object | Get-Unique
+	Edit-Content -File $path$fileError -Mode 'clear'
+	Edit-Content -File $path$fileError -Mode 'add' -Content 'URL,Error'
 	foreach ($c in $content) {
-		Edit-Content -file $path$errorfile -mode 'add' -content $c
+		Edit-Content -File $path$fileError -Mode 'add' -Content $c
 	}
 }
 
-if ($outofscope -eq 0) {
-	Remove-Item -Path $path$scopefile
+if ($countScope -eq 0) {
+	Remove-Item -Path $path$fileScope
 }
 else {
-	$content = Get-Content -Path $path$scopefile | Sort-Object | Get-Unique
-	Edit-Content -file $path$scopefile -mode 'clear'
-	Edit-Content -file $path$scopefile -mode 'add' -content 'URL,Parent'
+	$content = Get-Content -Path $path$fileScope | Sort-Object | Get-Unique
+	Edit-Content -File $path$fileScope -Mode 'clear'
+	Edit-Content -File $path$fileScope -Mode 'add' -Content 'URL,Parent'
 	foreach ($c in $content) {
-        Edit-Content -file $path$scopefile -mode 'add' -content $c
+        Edit-Content -File $path$fileScope -Mode 'add' -Content $c
     }
 }
 
-if ($linkfile -ne 0) { $content = Get-Content -Path $path$linkfile }
-if ($documentcount -ne 0) { $content += Get-Content -Path $path$docfile }
+if ($fileLink -ne 0) { $content = Get-Content -Path $path$fileLink }
+if ($countDocument -ne 0) { $content += Get-Content -Path $path$fileDocument }
 $content = $content | Sort-Object | Get-Unique
-Edit-Content -file $path$reportfile -mode 'add' -content  'URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
-Edit-Content -file $path$reportfile -mode 'add' -content  $content
+Edit-Content -File $path$fileReport -Mode 'add' -Content  'URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
+Edit-Content -File $path$fileReport -Mode 'add' -Content  $content
 
-Edit-Content -file $PSScriptRoot'\master.csv' -mode 'add' -content $content
+Edit-Content -File $PSScriptRoot'\master.csv' -Mode 'add' -Content $content
 
 $EndDate = Get-Date
 $TimeSpan = New-TimeSpan -Start $StartDate -End $EndDate
 $TimeSpan
 
-Edit-Content -file $path$logfile -mode 'add' -content ''
+Edit-Content -File $path$fileLog -Mode 'add' -Content ''
 $value = 'Complete in: ' + $TimeSpan.Hours + ' hours, ' + $TimeSpan.Minutes + ' minutes, ' + $TimeSpan.Seconds + ' seconds'
-Edit-Content -file $path$logfile -mode 'add' -content $value
+Edit-Content -File $path$fileLog -Mode 'add' -Content $value
