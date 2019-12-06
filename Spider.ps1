@@ -19,9 +19,9 @@ if ($args[1]) {
 	$maxDepth = $args[1]
 }
 else {
-	$maxDepth = Read-Host 'Max Depth? (1 - 99) [15]'
+	$maxDepth = Read-Host 'Max Depth? (1 - 99) [10]'
 	if (!$maxDepth) {
-		$maxDepth = 15
+		$maxDepth = 10
 	}
 }
 
@@ -29,9 +29,9 @@ if ($args[2]) {
 	$requestTimeout = $args[2]
 }
 else {
-	$requestTimeout = Read-Host 'Request Timeout? (Seconds 1 - 99) [10]'
+	$requestTimeout = Read-Host 'Request Timeout? (Seconds 1 - 99) [7]'
 	if (!$requestTimeout) {
-		$requestTimeout = 10
+		$requestTimeout = 7
 	}
 }
 
@@ -106,6 +106,8 @@ else {
 
 function Confirm-Document {
 	param(
+        [Parameter(Mandatory=$true)]
+		[String[]]
 		$link
 	)
 
@@ -125,6 +127,8 @@ function Confirm-Document {
 
 function Get-DocumentType {
 	param(
+        [Parameter(Mandatory=$true)]
+		[String[]]
 		$doclink
 	)
 
@@ -134,6 +138,8 @@ function Get-DocumentType {
 
 function Format-Url {
 	param(
+        [Parameter(Mandatory=$true)]
+		[String[]]
 		$url
 	)
 
@@ -143,7 +149,12 @@ function Format-Url {
 	$url = $url -replace 'https&#58;//'
 	$url = $url -replace ',', '%2C'
 	$url = $url -replace ' ', '%20'
-	$url = $url -replace '&amp;', '&'
+    $url = $url -replace '&amp;', '&'
+    $url = $url -replace ';', '%3B'
+    $url = $url -replace ([Environment]::NewLine), (' ')
+	$url = $url -replace ("`n"), (' ')
+	$url = $url -replace ("`t")
+    $url = $url -replace ('\n')
 
 	if($url.StartsWith('//')) {
 		$url = $url -replace '//'
@@ -166,8 +177,13 @@ function Format-Url {
 
 function Format-Readable {
 	param(
-		$content,
-		$document
+        [Parameter(Mandatory=$false)]
+		[String[]]
+        $Content,
+
+        [Parameter(Mandatory=$true)]
+		[Boolean]
+		$Document
 	)
 
 	if($document) {
@@ -198,7 +214,6 @@ function Format-Readable {
 	$content = $content -replace '&amp;', "&"
 	$content = $content -replace '&#038;', "&"
 	$content = $content -replace '&#8230;', "..."
-
 	$content = $content -replace ([Environment]::NewLine), (' ')
 	$content = $content -replace ("`n"), (' ')
 	$content = $content -replace ("`t")
@@ -222,41 +237,52 @@ function Format-Readable {
 
 function Get-HttpError {
     param (
+        [Parameter(Mandatory=$false)]
+		[String[]]
         $e,
+
+        [Parameter(Mandatory=$false)]
+		[String]
         $link,
+
+        [Parameter(Mandatory=$false)]
+		[String[]]
         $parent
     )
 
     $content = $link + ',' + $parent
-    if ((($e -split '\n')[0]).Contains("Bad Request")) {
-        $content += ',error,400,' + ($e -split '\n')[0]
+    if ((($e -Split '\n')[0]).Contains("Bad Request")) {
+        $content += ',error,400,' + ($e -Split '\n')[0]
     }
-    elseif ((($e -split '\n')[0]).Contains("401") -or (($e -split '\n')[0]).Contains("Unauthorized")) {
-        $content += ',error,401,' + ($e -split '\n')[0]
+    elseif ((($e -Split '\n')[0]).Contains("401") -or (($e -Split '\n')[0]).Contains("Unauthorized")) {
+        $content += ',error,401,' + ($e -Split '\n')[0]
     }
-    elseif ((($e -split '\n')[0]).Contains("Forbidden") -or (($e -split '\n')[0]).Contains("You do not have permission")) {
-        $content += ',error,403,' + ($e -split '\n')[0]
+    elseif ((($e -Split '\n')[0]).Contains("Forbidden") -or (($e -Split '\n')[0]).Contains("You do not have permission")) {
+        $content += ',error,403,' + ($e -Split '\n')[0]
     }
-    elseif ((($e -split '\n')[0]).Contains("404") -or (($e -split '\n')[0]).Contains("Not Found") -or (($e -split '\n')[0]).Contains("not found") -or (($e -split '\n')[0]).Contains("could be found") -or (($e -split '\n')[0]).Contains("The resource you are looking for has been removed")) {
-        $content += ',error,404,' + ($e -split '\n')[4]
+	elseif ((($e -Split '\n')[0]).Contains("404") -or (($e -Split '\n')[0]).Contains("Not Found") -or (($e -Split '\n')[0]).Contains("not found") `
+		-or (($e -Split '\n')[0]).Contains("could be found") -or (($e -Split '\n')[0]).Contains("The resource you are looking for has been removed")) {
+        $content += ',error,404,' + ($e -Split '\n')[4]
     }
-    elseif ((($e -split '\n')[0]).Contains("Unable to connect to the remote server") -or (($e -split '\n')[0]).Contains("The operation has timed out.")) {
-        $content += ',error,408,' + ($e -split '\n')[0]
+    elseif ((($e -Split '\n')[0]).Contains("Unable to connect to the remote server") -or (($e -Split '\n')[0]).Contains("The operation has timed out.")) {
+        $content += ',error,408,' + ($e -Split '\n')[0]
     }
-    elseif ((($e -split '\n')[0]).Contains("Server Error")) {
-        $content += ',error,500,' + ($e -split '\n')[0]
+    elseif ((($e -Split '\n')[0]).Contains("Server Error")) {
+        $content += ',error,500,' + ($e -Split '\n')[0]
     }
-    elseif ((($e -split '\n')[0]).Contains("Service Unavailable")) {
-        $content += ',error,503,' + ($e -split '\n')[0]
+    elseif ((($e -Split '\n')[0]).Contains("Service Unavailable")) {
+        $content += ',error,503,' + ($e -Split '\n')[0]
     }
     else {
-        $content += ',error,,' + ($e -split '\n')[0]
+        $content += ',error,,' + ($e -Split '\n')[0]
     }
     Add-Content -Path $path$fileDocument -Value $content
 }
 
 function Remove-Comma {
 	param(
+        [Parameter(Mandatory=$false)]
+		[String[]]
 		$Content
 	)
 
@@ -266,6 +292,8 @@ function Remove-Comma {
 
 function Get-ByteSize {
 	param(
+        [Parameter(Mandatory=$false)]
+		[Int32]
 		$size
 	)
 
@@ -283,7 +311,7 @@ function Get-ByteSize {
 
 function Test-FileLock {
 	param (
-		[Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[String[]]
 		$file
 	)
@@ -307,15 +335,15 @@ function Test-FileLock {
 
 function Edit-Content {
 	param(
-		[Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true)]
 		[String[]]
-		$File,
-
-		[Parameter(Mandatory=$true)]
+        $File,
+        
+        [Parameter(Mandatory=$true)]
 		[String[]]
-		$Mode,
-
-		[Parameter(Mandatory=$false)]
+        $Mode,
+        
+        [Parameter(Mandatory=$false)]
 		[String[]]
 		$Content
 	)
@@ -398,7 +426,7 @@ $content = $link + ',' + $domain
 Edit-Content -File $path$fileLink -Mode 'add' -Content $content
 $countLink++
 
-#$scope = '.' + $domain.split('.')[1] + '.' + $domain.split('.')[2]
+#$scope = '.' + $domain.Split('.')[1] + '.' + $domain.Split('.')[2]
 $links = $request.Links.href
 $links = $links | Sort-Object | Get-Unique
 $linksCount = $links.Count
@@ -468,8 +496,13 @@ while ($unique) {
 					$request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing
 				}
 				catch {
-					$errorDetails = Remove-Comma -Content $_.ErrorDetails 
-					$errorDetails = Format-Readable -Content $errorDetails -document $false
+					# Should this be here?
+					# Replaced by catch http?
+					# Need seperate file for errors?
+					if($_.ErrorDetails) {
+						$errorDetails = Remove-Comma -Content $_.ErrorDetails 
+						$errorDetails = Format-Readable -Content $errorDetails -Document $false
+					}
 					$errorMessage = $link + ',' + $errorDetails
 					Edit-Content -File $path$fileError -Mode 'add' -Content $errorMessage
 					$countError++
@@ -565,8 +598,8 @@ if ($countLink -eq 0) { Remove-Item -Path $path$fileLink } else {
 		$linksCount = $links.Count
 		$linkCount = 0
 		foreach ($link in $links) {
-			$parent = $link.split(',')[1]
-			$link = $link.split(',')[0]
+			$parent = $link.Split(',')[1]
+			$link = $link.Split(',')[0]
 			$linkCount++
 			$linkProgress = ($linkCount / $linksCount) * 100
 			$linkProgress = "{0:n2}" -f $linkProgress
@@ -581,7 +614,7 @@ if ($countLink -eq 0) { Remove-Item -Path $path$fileLink } else {
 						$title = $request.Content.Split('<') | Where-Object { $_.ToLower().Contains('title>') }
 						$title = $title.Split('>')[1]
 						$title = Remove-Comma -Content $title
-						$title = Format-Readable -Content $title -document $false
+						$title = Format-Readable -Content $title -Document $false
 					}
 					catch {
 						$title = ''
@@ -612,8 +645,8 @@ if ($countDocument -eq 0) { Remove-Item -Path $path$fileDocument } else {
 		$linksCount = $links.Count
 		$linkCount = 0
 		foreach ($link in $links) {
-			$parent = $link.split(',')[1]
-			$link = $link.split(',')[0]
+			$parent = $link.Split(',')[1]
+			$link = $link.Split(',')[0]
 			$linkCount++
 			$linkProgress = ($linkCount / $linksCount) * 100
 			$linkProgress = "{0:n2}" -f $linkProgress
@@ -625,11 +658,10 @@ if ($countDocument -eq 0) { Remove-Item -Path $path$fileDocument } else {
 					$request = Invoke-WebRequest $link -TimeoutSec $requestTimeout -UseBasicParsing -Method Head
 					$lastModified = Remove-Comma -Content $request.Headers.'Last-Modified'
 					$contentLength = Get-ByteSize -Size $request.Headers.'Content-Length'
-					$title = Format-Readable -Content $link -document $true
+					$title = Format-Readable -Content $link -Document $true
 					$content = $link + ',' + $parent + ',' + $doctype + ',' + $request.StatusCode + ',' + $title + ',' `
 						+ $lastModified + ',' + $contentLength + ',' + $request.Headers.'Content-Length'
-					$request.ParsedHtml.title
-					Add-Content -Path $path$fileDocument -Value $content
+					Edit-Content -File $path$fileDocument -Mode 'add' -Content $content
 				}
 				catch {
 					Get-HttpError -e $_ -link $link -parent $parent
@@ -673,8 +705,8 @@ else {
 if ($fileLink -ne 0) { $content = Get-Content -Path $path$fileLink }
 if ($countDocument -ne 0) { $content += Get-Content -Path $path$fileDocument }
 $content = $content | Sort-Object | Get-Unique
-Edit-Content -File $path$fileReport -Mode 'add' -Content  'URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
-Edit-Content -File $path$fileReport -Mode 'add' -Content  $content
+Edit-Content -File $path$fileReport -Mode 'add' -Content 'URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
+Edit-Content -File $path$fileReport -Mode 'add' -Content $content
 
 Edit-Content -File $PSScriptRoot'\master.csv' -Mode 'add' -Content $content
 
