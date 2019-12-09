@@ -107,7 +107,7 @@ else {
 function Confirm-Document {
 	param(
         [Parameter(Mandatory=$true)]
-		[String[]]
+		[String]
 		$link
 	)
 
@@ -128,7 +128,7 @@ function Confirm-Document {
 function Get-DocumentType {
 	param(
         [Parameter(Mandatory=$true)]
-		[String[]]
+		[String]
 		$doclink
 	)
 
@@ -139,7 +139,7 @@ function Get-DocumentType {
 function Format-Url {
 	param(
         [Parameter(Mandatory=$true)]
-		[String[]]
+		[String]
 		$url
 	)
 
@@ -168,9 +168,25 @@ function Format-Url {
 		$url = $url -replace 'www.'
 	}
 
-	if ($url.Contains('?')) {
+	if ($url.ToLower().Contains('?')) {
 		$url = $url.Split('?')[0]
 	}
+
+<# 	if ($url.ToLower().Contains('?page=')) {
+		$url = $url.Split('?page=')[0]
+	}
+	elseif ($url.ToLower().Contains('&page=')) {
+		$url = $url.Split('&page=')[0]
+	}
+	elseif ($url.ToLower().Contains('?sort=')) {
+		$url = $url.Split('?sort=')[0]
+	}
+	elseif ($url.ToLower().Contains('&sort=')) {
+		$url = $url.Split('&sort=')[0]
+	}
+	elseif ($url.ToLower().Contains('?search=')) {
+		$url = $url.Split('?search=')[0]
+	} #>
 
 	return $url
 }
@@ -178,7 +194,7 @@ function Format-Url {
 function Format-Readable {
 	param(
         [Parameter(Mandatory=$false)]
-		[String[]]
+		[String]
         $Content,
 
         [Parameter(Mandatory=$true)]
@@ -238,7 +254,7 @@ function Format-Readable {
 function Get-HttpError {
     param (
         [Parameter(Mandatory=$false)]
-		[String[]]
+		[String]
         $e,
 
         [Parameter(Mandatory=$false)]
@@ -246,7 +262,7 @@ function Get-HttpError {
         $link,
 
         [Parameter(Mandatory=$false)]
-		[String[]]
+		[String]
         $parent
     )
 
@@ -282,7 +298,7 @@ function Get-HttpError {
 function Remove-Comma {
 	param(
         [Parameter(Mandatory=$false)]
-		[String[]]
+		[String]
 		$Content
 	)
 
