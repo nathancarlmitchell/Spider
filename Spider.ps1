@@ -160,8 +160,8 @@ function Format-Url {
 		$url = $url -replace '//'
 	}
     
-	if ($url.EndsWith('#')) {
-		$url = $url -replace '#'
+	if ($url.Contains('#')) {
+		$url = $url.Split('#')[0]
 	}
     
 	if ($url.StartsWith('www.')) {
@@ -214,10 +214,12 @@ function Format-Readable {
 	$content = $content -replace '%2C', ' '
 	$content = $content -replace '%20', ' '
 	$content = $content -replace '&nbsp;', " "
+	$content = $content -replace '&#160;', " "
 	$content = $content -replace '%27', "'"
 	$content = $content -replace '&#39;', "'"
 	$content = $content -replace '&#039;', "'"
 	$content = $content -replace '&quot;', "'"
+	$content = $content -replace '&apos;', "'"
 	$content = $content -replace '&#8216;', "'"
 	$content = $content -replace '&#8217;', "'"
 	$content = $content -replace '&#8220;', "'"
@@ -227,6 +229,7 @@ function Format-Readable {
 	$content = $content -replace '&ndash;', "-"
 	$content = $content -replace '&mdash;', "-"
 	$content = $content -replace '&#8211;', "-"
+	$content = $content -replace '&#8212;', "-"
 	$content = $content -replace '&amp;', "&"
 	$content = $content -replace '&#038;', "&"
 	$content = $content -replace '&#8230;', "..."
@@ -384,7 +387,9 @@ function Edit-Content {
 	}
 }
 
+# try 
 $request = Invoke-WebRequest $url -TimeoutSec $requestTimeout -UseBasicParsing
+# if (request)
 $domain = Format-Url -url $request.BaseResponse.ResponseUri.Host
 $path = $PSScriptRoot + '\' + $domain + '\'
 $fileLink = $domain + '.links.csv'
