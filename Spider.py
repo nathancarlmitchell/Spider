@@ -10,17 +10,17 @@ import requests
 from lxml import html
 from multiprocessing.pool import Pool
 
+
 def make_request(url):
     """Makes a web request, return links on the page."""
     try:
         request = requests.get(url, timeout=5)
-        webpage = html.fromstring(request.content)
-        links = webpage.xpath('//a/@href')
-        return links
+        return request
     except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
-        links = ''
+        request = []
         print('Timout occurred: ' + url)
-    return links
+    return request
+
 
 def format_url(url):
     # remove / # , from end
@@ -29,7 +29,9 @@ def format_url(url):
     url = url.replace(',', '%2C')
     return url
 
+
 def append_links(links, url, scope):
+    """Format links from web request, prepend domain."""
     results = []
     for link in links:
         link = format_url(link)
@@ -48,12 +50,14 @@ def append_links(links, url, scope):
     results = list(dict.fromkeys(results))
     return results
 
+
 def document_check(url):
-    docs = ['pdf', 'xls', 'xlsx', 'xlsm', 'xlt', 'xltm', 'doc', 'docm',    \
-            'docx', 'dot', 'dotx', 'ppt', 'pptm', 'pptx', 'ppsx','txt',    \
-            'zip', 'rar', 'csv', 'kmz', 'shp', 'cat', 'dat', 'dgn', 'alg', \
-            'prj', 'rtf', 'pub', 'xml', 'gpx','mp3', 'mp4', 'avi', 'mov',  \
-            'wav', 'wmv', 'wma', 'jpg', 'jpeg', 'png', 'gif', 'tif', 'bmp']
+    """Check if file extension is in a URL."""
+    docs = ['.pdf', '.xls', '.xlsx', '.xlsm', '.xlt', '.xltm', '.doc', '.docm',    
+            '.docx', '.dot', '.dotx', '.ppt', '.pptm', '.pptx', '.ppsx','.txt',    
+            '.zip', '.rar', '.csv', '.kmz', '.shp', '.cat', '.dat', '.dgn', '.alg', 
+            '.prj', '.rtf', '.pub', '.xml', '.gpx','.mp3', '.mp4', '.avi', '.mov',  
+            '.wav', '.wmv', '.wma', '.jpg', '.jpeg', '.png', '.gif', '.tif', '.bmp']
     document = False
     for doc in docs:
         if doc in url:
@@ -61,48 +65,60 @@ def document_check(url):
             
     return document        
 
+
 def main():
     start = time.time()
     
     #combine url and scope then add http://
-    url = 'http://technology.ky.gov'
+    url = 'http://aba.ky.gov'
     scope = format_url(url)
     unique = True
     depth = 0
     new_links = [url]
     links = []
     result = []
+    
     """Loop until no new links are found."""
     while unique:
+        
         unique = False
+        new_links = list(dict.fromkeys(new_links)) 
+        
+        """Create a process pool and make the web request."""
         with Pool(16) as p:
-            links += p.map(make_request, new_links)
+            requests = p.map(make_request, new_links)
             
         new_links = []
-        """ links[0] ? """
-        for link in links:
-            link = append_links(link, url, scope)
-            for l in link:
-                """If link is new"""
-                if l not in result:
-                    result.append(l)
-                    l = 'http://' + l
-                    """If link is not a document"""
-                    if not document_check(l):
-                        new_links.append(l)
-                    unique = True
-                print(l)
-            print(len(result))
-            
-        result = list(dict.fromkeys(result))
-        
+        for request in requests:
+            if request:
+                try:
+                    webpage = html.fromstring(request.content)
+                    links = webpage.xpath('//a/@href')
+                    """Check if link is new and append to results."""
+                    links = append_links(links, url, scope)
+                    for link in links:
+                        """If link is new"""
+                        if link not in result:
+                            unique = True
+                            result.append(link)
+                            link = 'http://' + link
+                            """If link is not a document"""
+                            if not document_check(link):
+                                new_links.append(link)
+                except:
+                    pass
+                        
+        result = list(dict.fromkeys(result))            
         depth += 1
         print(depth)
+        print(len(result))
+        print(len(new_links))
     
     """Write results to CSV file"""
-    f = open("result.csv", "w")
+    f = open("result.csv", "w", encoding='utf-8')
     for x in result:
         x = format_url(x)
+        # UnicodeEncodeError: 'charmap' codec can't encode character '\u03b2' in position 48: character maps to <undefined>
         f.write(x + "\n")
     f.close()
         
@@ -110,6 +126,7 @@ def main():
     print("Execution time = {0:.5f}".format(time.time() - start))
     
     return
+
 
 if __name__ == '__main__':
     main()
