@@ -15,7 +15,6 @@ def make_request(url):
     """Makes a web request, return links on the page."""
     try:
         request = requests.get(url, timeout=5)
-        return request
     except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
         request = []
         print('Timout occurred: ' + url)
@@ -70,7 +69,7 @@ def main():
     start = time.time()
     
     #combine url and scope then add http://
-    url = 'http://aba.ky.gov'
+    url = 'http://usda.gov'
     scope = format_url(url)
     unique = True
     depth = 0
