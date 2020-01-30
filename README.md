@@ -1,6 +1,6 @@
 # Spider
 ## Recursively search for unique URLs from a webpage
-### Powershell Web Spider
+### Powershell
 ```
 (cmd)
 powershell.exe -file spider.ps1 domain.test.com
@@ -11,6 +11,6 @@ Generates a CSV report containing:
 URL, Parent, Content Type, HTTP Status, Content Description, Date Modified, File Size
 </b>
 <br>
-### Python Web Spider
+### Python
 In progress.<br>
 Uses multithreading for increased performance.
