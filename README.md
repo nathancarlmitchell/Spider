@@ -8,7 +8,7 @@ powershell.exe -file spider.ps1 domain.test.com
 Generates a CSV report containing:
 <br>
 <b>
-URL, Parent, Content Type, HTTP Status, Content Description, Date Modified, File Size
+Domain, URL, Parent, Content Type, HTTP Status, Content Description, Date Modified, File Size
 </b>
 <br>
 ### Python
