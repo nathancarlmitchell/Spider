@@ -648,7 +648,7 @@ if ($request) {
 						catch {
 							$title = ''
 						}
-						$content = $link + ',' + $parent + ',' + ($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1] + ',' + $request.StatusCode + ',' + $title + ',' `
+						$content = $domain + ',' + $link + ',' + $parent + ',' + ($request.Headers.'Content-Type'.Split(';')[0]).Split('/')[1] + ',' + $request.StatusCode + ',' + $title + ',' `
 							+ $lastModified + ',' + $contentLength + ',' + $request.Headers.'Content-Length'
 							Edit-Content -File $path$fileLink -Mode 'add' -Content $content
 					}
@@ -688,7 +688,7 @@ if ($request) {
 						$lastModified = Remove-Comma -Content $request.Headers.'Last-Modified'
 						$contentLength = Get-ByteSize -Size $request.Headers.'Content-Length'
 						$title = Format-Readable -Content $link -Document $true
-						$content = $link + ',' + $parent + ',' + $doctype + ',' + $request.StatusCode + ',' + $title + ',' `
+						$content = $domain + ',' + $link + ',' + $parent + ',' + $doctype + ',' + $request.StatusCode + ',' + $title + ',' `
 							+ $lastModified + ',' + $contentLength + ',' + $request.Headers.'Content-Length'
 						Edit-Content -File $path$fileDocument -Mode 'add' -Content $content
 					}
@@ -734,7 +734,7 @@ if ($request) {
 	if ($fileLink -ne 0) { $content = Get-Content -Path $path$fileLink }
 	if ($countDocument -ne 0) { $content += Get-Content -Path $path$fileDocument }
 	$content = $content | Sort-Object | Get-Unique
-	Edit-Content -File $path$fileReport -Mode 'add' -Content 'URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
+	Edit-Content -File $path$fileReport -Mode 'add' -Content 'Domain,URL,Parent,Content,HTTP Status,Description,Date Modified,Size,Byte Size'
 	Edit-Content -File $path$fileReport -Mode 'add' -Content $content
 
 	Edit-Content -File $PSScriptRoot'\master.csv' -Mode 'add' -Content $content
