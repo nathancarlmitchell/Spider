@@ -4,6 +4,11 @@
 ```
 (cmd)
 powershell.exe -file spider.ps1 domain.test.com
+
+# To scan multiple domains
+(powershell)
+foreach ($domain in $domains)
+{ powershell -file spider.ps1 $domain 10 7 y y }
 ```
 Generates a CSV report containing:
 <br>
