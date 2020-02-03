@@ -1,7 +1,7 @@
 # Nathan Carl Mitchell
 # nathancarlmitchell@gmail.com
 # https://github.com/nathancarlmitchell/Spider
-# Verion 2.8.1
+# Verion 2.8.3
 # PowerShell Version 5.1
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
@@ -627,7 +627,11 @@ if ($request) {
 			$linksCount = $links.Count
 			$linkCount = 0
 			foreach ($link in $links) {
-				$parent = $link.Split(',')[1]
+				if ($link.Split(',')[1]) {
+					$parent = $link.Split(',')[1]
+				} else {
+					$parent = $domain
+				}
 				$link = $link.Split(',')[0]
 				$linkCount++
 				$linkProgress = ($linkCount / $linksCount) * 100
@@ -674,7 +678,11 @@ if ($request) {
 			$linksCount = $links.Count
 			$linkCount = 0
 			foreach ($link in $links) {
-				$parent = $link.Split(',')[1]
+				if ($link.Split(',')[1]) {
+					$parent = $link.Split(',')[1]
+				} else {
+					$parent = $domain
+				}
 				$link = $link.Split(',')[0]
 				$linkCount++
 				$linkProgress = ($linkCount / $linksCount) * 100
